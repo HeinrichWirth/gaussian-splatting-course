@@ -107,7 +107,7 @@ def plane_figure(mux=0, muy=0, sx=2, sy=1, x=2, y=1, language="ru"):
     fig.suptitle(_text(language, "Одна функция, три вида", "One function, three views"), fontsize=17, color=INK)
     table_ax.axis("off")
     titles = _text(language, ["1. Смещения", "2. Делим на ширины", "3. Складываем квадраты", "4. Получаем вес"],
-                   ["1. Offsets", "2. Divide by the scales", "3. Add the squares", "4. Find the weight"])
+                   ["1. Offsets", "2. Scaling the offsets", "3. Adding the squares", "4. Resulting weight"])
     values = [f"dx = {_number(x)} − ({_number(mux)}) = {_number(steps['dx'])}\ndy = {_number(y)} − ({_number(muy)}) = {_number(steps['dy'])}",
               f"ux = {_number(steps['dx'])} / {_number(sx)} = {_number(steps['ux'])}\nuy = {_number(steps['dy'])} / {_number(sy)} = {_number(steps['uy'])}",
               f"q = ({_number(steps['ux'])})² + ({_number(steps['uy'])})²\nq = {_number(steps['q'])}",
@@ -152,7 +152,7 @@ def slices_figure(mux=0, muy=0, sx=2, sy=1, x=2, y=1, language="ru"):
         ax.axvline(sample, color=ORANGE, lw=.8, alpha=.6)
         ax.set(xlim=(-LIMIT, LIMIT), ylim=(0, 1.05), xlabel=axis,
                ylabel=_text(language, "Вес", "Weight"))
-        ax.set_title(_text(language, f"Двигаем {axis}; {fixed} закреплено", f"Vary {axis}; keep {fixed}"), fontsize=11, color=INK)
+        ax.set_title(_text(language, f"Двигаем {axis}; {fixed} закреплено", f"{axis} varies; {fixed} stays fixed"), fontsize=11, color=INK)
         _axes(ax)
         ax.legend(loc="upper left", fontsize=8)
     fig.suptitle(_text(language,
@@ -274,8 +274,8 @@ def plane_lab(language="ru"):
 
     controls["reset"].on_click(reset)
     hint = widgets.HTML(value=_text(language,
-        "<b>Меняй по одному числу.</b> Крестик — выбранная точка. Пределы координат, высота 1 и шкала цвета остаются прежними. Значения обновляются после отпускания ползунка.",
-        "<b>Change one number at a time.</b> The cross marks the selected point. Coordinate limits, peak height 1, and the color scale stay fixed. Values update when you release the slider."))
+        "<b>Меняем параметры по одному.</b> Крестик — выбранная точка. Пределы координат, высота 1 и шкала цвета остаются прежними. Значения обновляются после отпускания ползунка.",
+        "<b>We change one parameter at a time.</b> The cross marks the selected point. Coordinate limits, peak height 1, and the color scale stay fixed. Values update after the slider is released."))
     box = widgets.VBox([hint, controls["view"], *[controls[name] for name in names],
                         controls["preset"], controls["reset"], output])
     box.course_controls = controls

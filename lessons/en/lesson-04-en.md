@@ -1,23 +1,19 @@
-[Open the Jupyter notebook](../../notebooks/en/lesson-04.ipynb)
-
-You can read the lesson and see the plots here. To try the sliders, open the notebook in Jupyter.
+[Jupyter notebook](../../notebooks/en/lesson-04.ipynb)
 
 
-# Lesson 4 — Rotate a Spot and Unpack Its Covariance Matrix
+# Lesson 4 — Rotating a Spot and Unpacking Its Covariance Matrix
 
-[Course plan and setup](../../README.md) · [Previous lesson](lesson-03-en.md) · [Русский](../ru/lesson-04.md) · [Next: several spots](lesson-05-en.md)
+[Course plan](../../README.md) · [Previous lesson](lesson-03-en.md) · [Русский](../ru/lesson-04.md) · [Next: several spots](lesson-05-en.md)
 
 In the previous lesson, we stretched a circle into an ellipse. Its long side always stayed along one of the coordinate axes, though. What if we want to draw a sloping branch or the edge of a roof?
 
-Let's rotate the spot. In the viewer, one slider does the job. Beside it, four numbers appear inside square brackets: the **covariance matrix**. We'll connect those numbers to size and tilt, then use them to calculate the weight at a point.
+We'll rotate the spot. In the viewer, one slider does the job. Beside it, four numbers appear inside square brackets: the **covariance matrix**. We'll connect those numbers to size and tilt, then use them to calculate the weight at a point.
 
-We won't start with a finished matrix formula. First we'll look at the rotation, then perform it with ordinary multiplication and addition. The matrix will become a short way to write operations we already understand.
+First we'll look at the rotation, then perform it with ordinary multiplication and addition. The matrix will become a short way to write operations we already understand.
 
-This lesson has more moving parts than the previous one: sine, cosine, and matrix multiplication are new here. If you want to split it into two sessions, section 7 is a useful stopping point. By then, you'll already be calculating weights by rotating a point back.
+Along the way, we'll meet sine, cosine, and matrix multiplication. The calculation will take two forms: rotating the point back, and using the covariance matrix. One example will show why they give the same weight.
 
-## 1. First, Rotate the Ellipse
-
-Run the cells from top to bottom. As before, GitHub shows saved figures, while the sliders work in Jupyter.
+## 1. The Ellipse Rotates
 
 ```python
 %matplotlib inline
@@ -55,13 +51,13 @@ display(covariance_figure(language=LANG))
 display(covariance_lab(language=LANG))
 ```
 
-Start with the main example: **scales 2 and 1, angle 45°, point (1, 1)**. The center stays at `(0, 0)` throughout this lesson so that translation doesn't distract us from shape.
+The main example has **scales 2 and 1, angle 45°, point (1, 1)**. The center stays at `(0, 0)` throughout this lesson so that translation doesn't distract us from shape.
 
-1. Set the angle to 0°, then 45°, then −45°. The spot keeps its length and thickness. Watch the entries away from the matrix diagonal appear and change sign.
-2. Return to 45° and change only the first scale. The spot stretches along its own tilted axis, rather than straight to the right.
-3. Choose the “Circle” example and change the angle again. The shape stays the same. A circle has no preferred long direction.
-4. Restore the main example and keep the point `(1, 1)` fixed. Depending on the tilt, it lies along the long side or closer to the short side. Its weight changes accordingly.
-5. Choose “Point at the center.” The weight becomes 1 for every positive pair of scales and every angle.
+1. As the angle moves from 0° to 45°, then to −45°, the spot keeps its length and thickness. Nonzero entries appear away from the matrix diagonal, and their signs change with the direction of tilt.
+2. At 45°, increasing only the first scale stretches the spot along its tilted axis, rather than straight to the right.
+3. In the “Circle” example, changing the angle leaves the shape unchanged. A circle has no preferred long direction.
+4. In the main example, the point `(1, 1)` stays fixed. Depending on the tilt, it lies along the long side or closer to the short side. Its weight changes accordingly.
+5. In “Point at the center,” the weight is 1 for every positive pair of scales and every angle.
 
 The orange and green arrows show the **spot's own axes**. We'll call the scales along them $s_1$ and $s_2$, read “s one” and “s two.” The subscripts simply distinguish the two axes. Initially, $s_1=2$ and $s_2=1$.
 
@@ -71,7 +67,7 @@ The blue line joins points with weight $e^{-1/2}\approx0.607$. As in lesson 3, t
 
 ## 2. Why the Matrix Stores Squared Sizes
 
-Recall the axis-aligned ellipse from lesson 3. For offsets $d_x$ and $d_y$, we calculated:
+For the axis-aligned ellipse in lesson 3, we calculated the following from offsets $d_x$ and $d_y$:
 
 ```math
 q=\left(\frac{d_x}{s_1}\right)^2+\left(\frac{d_y}{s_2}\right)^2,
@@ -82,13 +78,13 @@ $d_x=x-\mu_x$ and $d_y=y-\mu_y$ tell us how far the point is displaced from the 
 
 Squaring the fractions puts $s_1^2$ and $s_2^2$ in their denominators. With scales 2 and 1, these are $2\cdot2=4$ and $1\cdot1=1$. Those squares will form the diagonal of the unrotated spot's matrix.
 
-Why are they called **variances**? Take a small collection of numbers: −2, −2, 2, 2. Their mean is:
+The word **variance** comes from measuring spread. For a small collection of numbers, −2, −2, 2, 2, the mean is:
 
 ```math
 \bar x=\frac{-2-2+2+2}{4}=0.
 ```
 
-The bar over $x$ means “mean x.” Subtract the mean from each number, square each difference, and take their average:
+The bar over $x$ means “mean x.” We subtract the mean from each number, square each difference, and average the results:
 
 ```math
 v_x=\frac{(-2-0)^2+(-2-0)^2+(2-0)^2+(2-0)^2}{4}
@@ -103,7 +99,7 @@ The four numbers above let us see the arithmetic of spread. They do not become a
 
 ## 3. Covariance: Do the Two Coordinates Change Together?
 
-Now take four points on a plane:
+Now we have four points on a plane:
 
 | Point | x | y | x² | x·y | y² |
 |---|---:|---:|---:|---:|---:|
@@ -125,13 +121,13 @@ b=\frac{2-2-2+2}{4}=0.
 
 The positive and negative contributions cancel. This set favors neither an “up and right” nor a “down and right” tilt.
 
-If the set is not centered at zero, first subtract its means. In general:
+If the set is not centered at zero, we first subtract its means. In general:
 
 ```math
 b=\frac1N\sum_{i=1}^{N}(x_i-\bar x)(y_i-\bar y).
 ```
 
-Here $N$ is the number of points; $i$ is the current point's index; $x_i,y_i$ are its coordinates; and $\sum$ (“sigma”) says “add the results for every index from 1 to N.” For each point, subtract the means, multiply the two deviations, add all the products, and divide by the number of points.
+Here $N$ is the number of points; $i$ is the current point's index; $x_i,y_i$ are its coordinates; and $\sum$ (“sigma”) denotes the sum of the results for every index from 1 to N. For each point, we subtract the means and multiply the two deviations. We then add all the products and divide by the number of points.
 
 We are describing **the entire given set**, so we divide by $N=4$. When estimating an unknown covariance from a random sample, statistics often uses $N-1$. That is a different task; we must not switch divisors halfway through this example.
 
@@ -139,7 +135,7 @@ Covariance also has units of cm² if both coordinates use centimeters. It is not
 
 ## 4. Four Numbers Instead of Three Long Labels
 
-Put the numbers into a table with two rows and two columns:
+The numbers fit into a table with two rows and two columns:
 
 ```math
 \Sigma=
@@ -165,13 +161,13 @@ D=\begin{bmatrix}s_1^2&0\\0&s_2^2\end{bmatrix}
 =\begin{bmatrix}4&0\\0&1\end{bmatrix}.
 ```
 
-We'll reserve $D$ for the matrix in the spot's own axes. In $\mathrm{diag}(4,1)$, `diag` simply means “put 4 and 1 on the diagonal and fill the remaining entries with zeros.”
+We'll reserve $D$ for the matrix in the spot's own axes. In $\mathrm{diag}(4,1)$, `diag` denotes a matrix with 4 and 1 on the diagonal and zeros in the remaining entries.
 
 While the spot's axes match $x,y$, $D$ and $\Sigma$ are identical. After rotation, $D$ keeps its 4 and 1, while $\Sigma$, the shape written in world coordinates, changes.
 
 ## 5. Rotation Before Matrices: Two Projections of an Arrow
 
-Draw an arrow of length 1, initially pointing right. Its tip is at `(1, 0)`. Rotate it counterclockwise through an angle $\theta$, read “theta.”
+An arrow of length 1 initially points right, with its tip at `(1, 0)`. We rotate it counterclockwise through an angle $\theta$, pronounced “theta.”
 
 A full turn is 360°, and a quarter turn is 90°. At 45°, the arrow points halfway between right and up.
 
@@ -202,7 +198,7 @@ display(rotation_figure(angle_deg=45, language=LANG))
 
 The second axis must be perpendicular to the first. If the first points along $(c,s)$, the second points along $(-s,c)$. At 45° this is `(-0.707107, 0.707107)`, up and left. Both arrows have length 1.
 
-Suppose a point lies $a$ units along the first axis and $b$ units along the second. Here $a,b$ are the point's coordinates in the spot's frame; we'll set aside the covariance symbol $b$ for a moment. Add the two displacements:
+A point lies $a$ units along the first axis and $b$ units along the second. Here $a,b$ are the point's coordinates in the spot's frame; we'll set aside the covariance symbol $b$ for a moment. We add the two displacements:
 
 ```math
 \begin{aligned}
@@ -215,9 +211,9 @@ For example, $(a,b)=(2,0)$ at 45° gives $x=0.707107\cdot2-0.707107\cdot0\approx
 
 The numbers 2 and 0 have not changed as coordinates along the spot's own axes. We've worked out where that same point lies in world coordinates.
 
-## 6. Write the Same Rotation as a Matrix
+## 6. The Same Rotation Written as a Matrix
 
-Put the coefficients of our two operations into a table:
+The coefficients of our two operations form a table:
 
 ```math
 R=\begin{bmatrix}c&-s\\s&c\end{bmatrix},
@@ -228,7 +224,7 @@ R=\begin{bmatrix}c&-s\\s&c\end{bmatrix},
 
 $R$ names the rotation matrix. Two numbers written vertically form a **column vector**. Here it simply stores two coordinates.
 
-Matrix–vector multiplication works **row against column**. For the first output coordinate, multiply each entry of the first row by the matching entry of the column and add: $c\cdot a+(-s)\cdot b$. For the second, use the second row: $s\cdot a+c\cdot b$. This performs exactly the geometric operation from the previous section.
+Matrix–vector multiplication works **row against column**. For the first output coordinate, we multiply each entry of the first row by the matching entry of the column and add: $c\cdot a+(-s)\cdot b$. For the second, we use the second row: $s\cdot a+c\cdot b$. This performs exactly the geometric operation from the previous section.
 
 The columns of $R$ have a meaning too: the first tells us where the unit arrow `(1,0)` went, and the second tells us where `(0,1)` went.
 
@@ -259,11 +255,11 @@ R =
 world point = [1.414214 1.414214]
 ```
 
-## 7. To Calculate the Weight, Rotate the Point Back
+## 7. Calculating Weight by Rotating the Point Back
 
 We can now turn coordinates along the spot's axes into world coordinates. But the viewer gives us a world point. To use the formula from lesson 3, we need its offsets **along the ellipse's own axes**.
 
-First subtract the center, then rotate that offset through **the negative of the same angle**. For a rotation matrix, its transpose does this:
+We first subtract the center, then rotate that offset through **the negative of the same angle**. For a rotation matrix, its transpose does this:
 
 ```math
 R^T=\begin{bmatrix}c&s\\-s&c\end{bmatrix}.
@@ -271,7 +267,7 @@ R^T=\begin{bmatrix}c&s\\-s&c\end{bmatrix}.
 
 The superscript $T$ means “transpose,” not a power. Rows become columns: the upper-right and lower-left entries exchange places. For a rotation matrix, this gives the reverse rotation; for an arbitrary matrix, transposing does not replace taking the inverse.
 
-Write the world offset as a column $d$, and call its coordinates after the reverse rotation $d_1,d_2$:
+We write the world offset as a column $d$ and call its coordinates after the reverse rotation $d_1,d_2$:
 
 ```math
 d=\begin{bmatrix}d_x\\d_y\end{bmatrix},
@@ -281,7 +277,7 @@ d=\begin{bmatrix}d_x\\d_y\end{bmatrix},
 =\begin{bmatrix}cd_x+sd_y\\-sd_x+cd_y\end{bmatrix}.
 ```
 
-Calculate it for `(1,1)`, center `(0,0)`, and angle 45°. We'll use the exact values $c=s=1/\sqrt2$ and round only for display:
+For `(1,1)`, center `(0,0)`, and angle 45°, the calculation goes as follows. We'll use the exact values $c=s=1/\sqrt2$ and round only for display:
 
 ```math
 \begin{aligned}
@@ -291,7 +287,7 @@ d_2&=-\frac1{\sqrt2}\cdot1+\frac1{\sqrt2}\cdot1=0.
 \end{aligned}
 ```
 
-The point lies entirely along the first, long axis. Divide that coordinate by scale 2 and the second coordinate by scale 1:
+The point lies entirely along the first, long axis. We divide that coordinate by scale 2 and the second coordinate by scale 1:
 
 ```math
 \begin{aligned}
@@ -304,7 +300,7 @@ f&=\exp(-0.5/2)=\exp(-0.25)\approx0.778801.
 
 The first two divisions measure the offsets in units of their respective scales. The squares remove the signs, the sum combines the directions, and the exponential turns distance into weight. Every operation after the rotation is familiar.
 
-To check the reverse rotation, multiply $R^TR$. The first diagonal entry is $c^2+s^2=1$, and the second is also 1; off the diagonal, $-cs+sc=0$. So rotating and rotating back really do return the original coordinates.
+The product $R^TR$ checks the reverse rotation. The first diagonal entry is $c^2+s^2=1$, and the second is also 1; off the diagonal, $-cs+sc=0$. So rotating and rotating back really do return the original coordinates.
 
 ```python
 d = np.array([1.0, 1.0])
@@ -331,9 +327,9 @@ weight = 0.778801
 
 ## 8. How Rotation Changes the Covariance Matrix
 
-Return to the four shape entries. We need a matrix in world coordinates, even though $s_1,s_2$ are scales along the spot's own axes.
+Back to the four shape entries. We need a matrix in world coordinates, even though $s_1,s_2$ are scales along the spot's own axes.
 
-First, see where the transformation rule comes from. Multiply an offset column $d$ by its transposed row:
+The transformation rule starts with the product of an offset column $d$ and its transposed row:
 
 ```math
 \begin{bmatrix}d_x\\d_y\end{bmatrix}
@@ -351,7 +347,7 @@ After rotation, each offset becomes $Rd$. Its transposed row becomes $d^TR^T$: t
 
 This is the covariance transformation rule for rotation. For a Gaussian, it describes the same shape using different coordinate axes. The four corner points make the arithmetic visible; they do not replace the Gaussian.
 
-Now expand both multiplications. First multiply $R$ by $D$. For each entry, take a row of the left matrix and a column of the right one:
+We can now expand both multiplications, starting with $R$ times $D$. Each entry combines a row of the left matrix with a column of the right one:
 
 ```math
 RD=
@@ -362,7 +358,7 @@ RD=
 
 For example, the upper-left entry is $c\cdot s_1^2+(-s)\cdot0=cs_1^2$. The upper-right one is $c\cdot0+(-s)\cdot s_2^2=-ss_2^2$. The zeros remove one term from each sum. The lower row works the same way.
 
-Now multiply the resulting table by $R^T$. Here are all four entries:
+Multiplying the resulting table by $R^T$ gives these four entries:
 
 ```math
 \begin{aligned}
@@ -373,7 +369,7 @@ Now multiply the resulting table by $R^T$. Here are all four entries:
 \end{aligned}
 ```
 
-Read the subscripts `11`, `12`, `21`, `22` as “row number, column number,” starting at 1. For example, $\Sigma_{12}$ is the first row, second column. The two off-diagonal entries match, as they should in a covariance matrix.
+The subscripts `11`, `12`, `21`, `22` mean “row number, column number,” starting at 1. For example, $\Sigma_{12}$ is the first row, second column. The two off-diagonal entries match, as they should in a covariance matrix.
 
 In the main example, $s_1^2=4$ and $s_2^2=1$. At 45°, $c^2=s^2=cs=1/2$. Substituting:
 
@@ -416,9 +412,9 @@ Sigma =
  [1.5 2.5]]
 ```
 
-## 9. Check the Matrix with the Same Four Points
+## 9. Checking the Matrix with the Same Four Points
 
-Rotate our rectangular point set. Point A started at `(−2,−1)`. After a 45° rotation:
+We rotate our rectangular point set. Point A started at `(−2,−1)`. After a 45° rotation:
 
 ```math
 \begin{aligned}
@@ -437,7 +433,7 @@ display(sample_covariance_figure(angle_deg=45, language=LANG))
 
 ![Figure 3](../../assets/lesson4/en/figure-03.png)
 
-The mean coordinates are still zero. Average the squares and products:
+The mean coordinates are still zero. Averaging the squares and products gives:
 
 ```math
 \begin{aligned}
@@ -465,9 +461,9 @@ I=\begin{bmatrix}1&0\\0&1\end{bmatrix},
 \Sigma\Sigma^{-1}=I.
 ```
 
-Try $I$ on a column: the first row gives $1\cdot x+0\cdot y=x$, and the second gives $0\cdot x+1\cdot y=y$. It leaves the coordinates unchanged.
+Multiplying $I$ by a column leaves it unchanged: the first row gives $1\cdot x+0\cdot y=x$, and the second gives $0\cdot x+1\cdot y=y$. The coordinates remain the same.
 
-For a general symmetric table, temporarily name its three distinct entries $A,B,C$:
+For a general symmetric table, we'll temporarily call its three distinct entries $A,B,C$:
 
 ```math
 \Sigma=\begin{bmatrix}A&B\\B&C\end{bmatrix}.
@@ -475,15 +471,15 @@ For a general symmetric table, temporarily name its three distinct entries $A,B,
 
 Here $A$ is the upper-left entry, $C$ is the lower-right one, and $B$ fills both off-diagonal entries. These are not the scales $s_1,s_2$. In our example, $A=C=2.5$ and $B=1.5$.
 
-First calculate the **determinant**:
+The first calculation gives the **determinant**:
 
 ```math
 \Delta=AC-B^2.
 ```
 
-$\Delta$ is read “delta.” For a 2×2 table, multiply the entries on the main diagonal and subtract the product on the other diagonal. For a symmetric matrix, the second product is $B\cdot B=B^2$.
+$\Delta$ is read “delta.” For a 2×2 table, we multiply the entries on the main diagonal and subtract the product on the other diagonal. For a symmetric matrix, the second product is $B\cdot B=B^2$.
 
-Why does this number appear when finding an inverse? Exchange the diagonal entries, negate the other two, and multiply:
+This number appears naturally when we exchange the diagonal entries, negate the other two, and multiply the two matrices:
 
 ```math
 \begin{aligned}
@@ -494,7 +490,7 @@ Why does this number appear when finding an inverse? Exchange the diagonal entri
 \end{aligned}
 ```
 
-Each entry is expanded as row against column. Both off-diagonal results cancel to zero. If $\Delta\ne0$, divide every entry of the second matrix by $\Delta$, and the result will have ones on its diagonal:
+Each entry is expanded as row against column. Both off-diagonal results cancel to zero. If $\Delta\ne0$, dividing every entry of the second matrix by $\Delta$ makes the product's diagonal entries equal to one:
 
 ```math
 \Sigma^{-1}=\frac1\Delta
@@ -503,15 +499,15 @@ Each entry is expanded as row against column. Both off-diagonal results cancel t
 
 That's the inverse formula. It is not a separate trick to memorize: we just checked how it undoes the original multiplication.
 
-## 11. Work Out the Inverse for Our Spot
+## 11. The Inverse for Our Spot, Step by Step
 
-Substitute the numbers:
+With our numbers:
 
 ```math
 \Delta=2.5\cdot2.5-1.5\cdot1.5=6.25-2.25=4.
 ```
 
-Now exchange the diagonal entries, negate the other two, and divide everything by 4:
+We exchange the diagonal entries, negate the other two, and divide everything by 4:
 
 ```math
 \begin{aligned}
@@ -522,7 +518,7 @@ Now exchange the diagonal entries, negate the other two, and divide everything b
 \end{aligned}
 ```
 
-Check two entries of $\Sigma\Sigma^{-1}$:
+Two entries of $\Sigma\Sigma^{-1}$ give a direct check:
 
 ```math
 \begin{aligned}
@@ -562,7 +558,7 @@ Sigma @ inverse =
  [0. 1.]]
 ```
 
-## 12. Read dᵀΣ⁻¹d and Get One Number
+## 12. How dᵀΣ⁻¹d Produces One Number
 
 We're ready for the compact Gaussian formula:
 
@@ -572,16 +568,16 @@ f(x,y)=\exp\left(-\frac12d^T\Sigma^{-1}d\right),
 d=\begin{bmatrix}x-\mu_x\\y-\mu_y\end{bmatrix}.
 ```
 
-Read it **from the inside out**:
+The calculation works **from the inside out**:
 
-1. Subtract the center to obtain the two-offset column $d$.
-2. Multiply $\Sigma^{-1}$ by $d$ to obtain a new column of two numbers.
-3. Multiply that column on the left by the row $d^T$: add two products to obtain one number, $q$.
-4. Divide $q$ by 2, negate it, and calculate the exponential.
+1. We subtract the center to obtain the two-offset column $d$.
+2. Multiplying $\Sigma^{-1}$ by $d$ gives a new column of two numbers.
+3. Multiplying that column on the left by the row $d^T$ adds two products to give one number, $q$.
+4. We divide $q$ by 2, negate it, and calculate the exponential.
 
 The whole expression $d^T\Sigma^{-1}d$ replaces the familiar sum of squared normalized offsets. It is called a **quadratic form** because the offset participates twice. The name describes the expression; it doesn't add another operation.
 
-For `(1,1)`, both offsets are 1. First multiply the matrix by the column:
+For `(1,1)`, both offsets are 1. First we multiply the matrix by the column:
 
 ```math
 v=\Sigma^{-1}d
@@ -591,7 +587,7 @@ v=\Sigma^{-1}d
 =\begin{bmatrix}0.25\\0.25\end{bmatrix}.
 ```
 
-$v$ is a temporary name for that column. Now multiply it by the original offset written as a row:
+$v$ is a temporary name for that column. We then multiply it by the original offset written as a row:
 
 ```math
 q=d^Tv
@@ -652,7 +648,7 @@ A>0,\qquad \Delta=AC-B^2>0.
 The first requires positive spread along the first world axis. The second prevents covariance from becoming so large that an independent width vanishes or the squared-distance value becomes negative.
 
 <details>
-<summary>Why these two conditions are enough: expand the squares</summary>
+<summary>Why these two conditions are enough: the expanded squares</summary>
 
 The inverse formula gives, for any offset:
 
@@ -668,13 +664,13 @@ The same result can be written as a sum of two squares:
 q=\frac{d_x^2}{A}+\frac{A}{\Delta}\left(d_y-\frac{B}{A}d_x\right)^2.
 ```
 
-Check it: expanding the second square gives $Ad_y^2/\Delta-2Bd_xd_y/\Delta+B^2d_x^2/(A\Delta)$. Add $d_x^2/A$; the total coefficient of $d_x^2$ is $(\Delta+B^2)/(A\Delta)=AC/(A\Delta)=C/\Delta$. We have recovered the original expression.
+Expanding the second square gives $Ad_y^2/\Delta-2Bd_xd_y/\Delta+B^2d_x^2/(A\Delta)$. After adding $d_x^2/A$, the total coefficient of $d_x^2$ is $(\Delta+B^2)/(A\Delta)=AC/(A\Delta)=C/\Delta$. We have recovered the original expression.
 
 If $A>0$ and $\Delta>0$, both square coefficients are positive. When $d_x\ne0$, the first term is positive. When $d_x=0$ but $d_y\ne0$, the second is positive. Every nonzero offset therefore gives $q>0$.
 
 </details>
 
-Consider three cases:
+Three cases show the difference:
 
 | Matrix | Determinant | What happened |
 |---|---:|---|
@@ -719,15 +715,15 @@ Not a valid shape matrix
 
 ## 14. Back to the Sliders
 
-The table beside the ellipse should now be easier to read. It stores squared spread along the world directions and the coupling between them. The inverse tells us how to account for that shape when calculating a weight.
+Each entry in the table beside the ellipse now has a geometric meaning. It stores squared spread along the world directions and the coupling between them. The inverse tells us how to account for that shape when calculating a weight.
 
-Try three experiments. Before each one, restore the main example: $s_1=2$, $s_2=1$, point `(1,1)`.
+The next three experiments share the same starting point: the main example, $s_1=2$, $s_2=1$, angle 45°, point `(1,1)`. Each changes only the parameter in the left column. What happens to the matrix and the weight?
 
-| What to change | What to predict first |
+| Change | Expected result |
 |---|---|
 | Angle 45° → 0° | What matrix will appear, and why will the weight decrease? |
 | Angle 45° → −45° | Which entries change sign? Along which axis will the point lie? |
-| Set both scales to 2 | What happens to the matrix's and weight's dependence on angle? |
+| Both scales equal 2 | What happens to the matrix's and weight's dependence on angle? |
 
 <details>
 <summary>Numbers to compare</summary>
@@ -740,7 +736,7 @@ Try three experiments. Before each one, restore the main example: $s_1=2$, $s_2=
 
 </details>
 
-A 180° turn also leaves the spot's shape unchanged. Compare 45° and −135° with the slider. Both local arrows reverse direction, but the squares of the local coordinates stay the same.
+A 180° turn also leaves the spot's shape unchanged. The angles 45° and −135° demonstrate this. Both local arrows reverse direction, but the squares of the local coordinates stay the same.
 
 A very small positive scale is mathematically allowed, but makes reciprocal values very large. Calculations then become more sensitive to rounding. The sliders' lower bound of 0.25 keeps the experiment convenient; it is not a universal minimum Gaussian scale.
 
@@ -748,20 +744,20 @@ A very small positive scale is mathematically allowed, but makes reciprocal valu
 
 ### Problem 1. Why Doesn't an Equal Diagonal Guarantee a Circle?
 
-Compare `[[2.5,1.5],[1.5,2.5]]` and `[[2.5,0],[0,2.5]]`. Their diagonals match. How do their spots differ?
+The matrices `[[2.5,1.5],[1.5,2.5]]` and `[[2.5,0],[0,2.5]]` have matching diagonals. How do their spots differ?
 
 <details>
 <summary>Worked answer</summary>
 
 The first has scales 2 and 1 at 45°: it is our ellipse. The second has no coupling between directions, and its two scales match: $\sqrt{2.5}$ and $\sqrt{2.5}$. It is therefore a circle.
 
-Look at `(1,1)`. For the first matrix, we already found $q=0.5$ and weight about 0.778801. For the second, each inverse diagonal entry is $1/2.5=0.4$, so $q=0.4\cdot1^2+0.4\cdot1^2=0.8$, the exponent is −0.4, and the weight is $e^{-0.4}\approx0.670320$. Matching diagonal entries still gave different weights.
+At `(1,1)`, the difference is visible in the weights too. For the first matrix, we already found $q=0.5$ and weight about 0.778801. For the second, each inverse diagonal entry is $1/2.5=0.4$, so $q=0.4\cdot1^2+0.4\cdot1^2=0.8$, the exponent is −0.4, and the weight is $e^{-0.4}\approx0.670320$. Matching diagonal entries still gave different weights.
 
 </details>
 
-### Problem 2. Calculate `(2,0)` in Two Ways
+### Problem 2. Two Ways to Calculate the Weight at `(2,0)`
 
-Use the main matrix `[[2.5,1.5],[1.5,2.5]]` and center `(0,0)`. First use the inverse matrix; then rotate back and divide by the scales.
+The matrix is `[[2.5,1.5],[1.5,2.5]]` and the center is `(0,0)`. What weight comes from the inverse matrix, and what comes from rotating back and dividing by the scales?
 
 <details>
 <summary>Worked answer</summary>
@@ -774,7 +770,7 @@ Using rotation: $d_1=2/\sqrt2=\sqrt2$ and $d_2=-2/\sqrt2=-\sqrt2$. Dividing give
 
 ### Problem 3. Why Can't We Just Take Every Entry's Reciprocal?
 
-Try “one divided by every entry” on `[[4,0],[0,1]]`. Where does it fail, and what is the actual inverse?
+Applying “one divided by every entry” to `[[4,0],[0,1]]` causes a problem. Where does this rule fail, and what is the actual inverse?
 
 <details>
 <summary>Worked answer</summary>
@@ -783,7 +779,7 @@ The off-diagonal entries would require division by zero. Yet the matrix is valid
 
 </details>
 
-### Problem 4. Change Centimeters to Meters
+### Problem 4. From Centimeters to Meters
 
 Point `(1,1)` cm and scales 2 cm and 1 cm are given at 45°. If we convert every coordinate and scale to meters, should the weight change?
 
@@ -794,13 +790,13 @@ Every length is now written as a number 100 times smaller: point `(0.01,0.01)`, 
 
 The matrix contains squared lengths, so it is divided by $100^2=10000$: `[[0.00025,0.00015],[0.00015,0.00025]]` m². The inverse, conversely, is multiplied by 10000: `[[6250,−3750],[−3750,6250]]` 1/m². Multiplying it by the offset gives `(25,25)`, then $q=0.01\cdot25+0.01\cdot25=0.5$. The weight is still about 0.778801.
 
-These values lie outside the slider ranges. To check numerically, call `gaussian2d(0.01, 0.01, sx=0.02, sy=0.01, angle_deg=45)` in a separate cell.
+These values lie outside the slider ranges. The call `gaussian2d(0.01, 0.01, sx=0.02, sy=0.01, angle_deg=45)` gives the same numerical check without that restriction.
 
 </details>
 
 ### Problem 5. Is an Invertible Matrix Always Suitable?
 
-Check `[[1,2],[2,1]]`. Its determinant is nonzero. Why don't we use it to draw our spot?
+The matrix `[[1,2],[2,1]]` has a nonzero determinant. Why don't we use it to draw our spot?
 
 <details>
 <summary>Worked answer</summary>
@@ -817,9 +813,9 @@ The same work fits into $d^T\Sigma^{-1}d$. The diagonal of $\Sigma$ stores world
 
 In the next lesson, we'll have several spots. We'll add color and opacity, change their order, and calculate by hand why that order changes a pixel's color. Those controls will become a small editor.
 
-### If You Want to Compare the Compact Notation
+### The Same Formulas in Reference Texts
 
 - [Petersen and Pedersen, The Matrix Cookbook](https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf): section 1.3 gives formulas for 2×2 matrices. Here we expanded those products with actual numbers.
 - [Chuong B. Do, The Multivariate Gaussian Distribution](https://cs229.stanford.edu/section/gaussians.pdf): how Gaussians relate to covariance. It uses a **normalized probability density** with an extra prefactor; our figures use just the exponential shape with a peak of 1.
 
-[Continue to lesson 5](lesson-05-en.md)
+[Lesson 5: several spots](lesson-05-en.md)

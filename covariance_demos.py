@@ -83,7 +83,7 @@ def covariance_figure(s1=2, s2=1, angle_deg=45, x=1, y=1, language="ru"):
     card.text(0.02, 0.87, "Σ =\n" + _matrix_text(sigma), va="top", fontsize=12, family="monospace", color=BLUE)
     card.text(0.02, 0.65, "Σ⁻¹ =\n" + _matrix_text(inverse), va="top", fontsize=12, family="monospace", color=GREEN)
     lines = [
-        _text(language, "Поворот точки назад:", "Rotate the point back:"),
+        _text(language, "Поворот точки назад:", "Point coordinates after rotating back:"),
         f"d1 = {_fmt(values['local_x'], 6)},  d2 = {_fmt(values['local_y'], 6)}",
         f"u1 = d1 / s1 = {_fmt(values['ux'], 6)}",
         f"u2 = d2 / s2 = {_fmt(values['uy'], 6)}",
@@ -91,7 +91,7 @@ def covariance_figure(s1=2, s2=1, angle_deg=45, x=1, y=1, language="ru"):
         f"f = exp(−q / 2) = {values['weight']:.6g}",
     ]
     card.text(0.02, 0.41, "\n".join(lines), va="top", fontsize=10.6, linespacing=1.65, color=INK)
-    fig.suptitle(_text(language, "Повернули эллипс — изменились числа в матрице", "Rotate the ellipse and watch the matrix change"), fontsize=14, color=INK)
+    fig.suptitle(_text(language, "Повернули эллипс — изменились числа в матрице", "Rotating the ellipse changes the matrix"), fontsize=14, color=INK)
     return _finish(fig)
 
 
@@ -159,7 +159,7 @@ def sample_covariance_figure(angle_deg=45, language="ru"):
         cell.set_edgecolor("#d7e0e9")
         if row == 5:
             cell.set_facecolor("#eaf4ef")
-    fig.suptitle(_text(language, "Ковариация на четырёх точках: складываем произведения и делим на 4", "Covariance from four points: add the products and divide by 4"), fontsize=13, color=INK)
+    fig.suptitle(_text(language, "Ковариация на четырёх точках: складываем произведения и делим на 4", "Covariance from four points: we add the products and divide by 4"), fontsize=13, color=INK)
     return _finish(fig)
 
 
@@ -172,7 +172,7 @@ def inverse_figure(language="ru"):
     contours = (world_contour, local_contour, normalized)
     points = ((1., 1.), (math.sqrt(2), 0.), (1/math.sqrt(2), 0.))
     titles = _text(language, ["1. Исходный эллипс", "2. Повернули точку назад", "3. Разделили на s1 и s2"],
-                   ["1. Original ellipse", "2. Rotate the point back", "3. Divide by s1 and s2"])
+                   ["1. Original ellipse", "2. Point rotated back", "3. Divided by s1 and s2"])
     labels = _text(language, ["d = (1, 1)", "d_local ≈ (1.414, 0)", "u ≈ (0.707, 0)"],
                    ["d = (1, 1)", "d_local ≈ (1.414, 0)", "u ≈ (0.707, 0)"])
     fig, axes = plt.subplots(1, 3, figsize=(11.4, 4.4), layout="constrained", facecolor=PAPER)
@@ -215,7 +215,7 @@ def covariance_lab(language="ru"):
                "center": (2, 1, 45, 0, 0)}
     options = _text(language,
                     [("Основной пример", "default"), ("Оси совпадают с x и y", "axis"), ("Наклон в другую сторону", "opposite"), ("Круг", "circle"), ("Точка в центре", "center")],
-                    [("Main example", "default"), ("Axes aligned with x and y", "axis"), ("Tilt the other way", "opposite"), ("Circle", "circle"), ("Point at the center", "center")])
+                    [("Main example", "default"), ("Axes aligned with x and y", "axis"), ("Opposite tilt", "opposite"), ("Circle", "circle"), ("Point at the center", "center")])
     controls["preset"] = widgets.Dropdown(options=options, value="default", description=_text(language, "Пример", "Example"), layout=layout, style=style)
     controls["reset"] = widgets.Button(description=_text(language, "Сбросить", "Reset"), icon="undo")
     output = widgets.Output()
@@ -248,8 +248,8 @@ def covariance_lab(language="ru"):
 
     controls["reset"].on_click(reset)
     hint = widgets.HTML(value=_text(language,
-        "<b>Поверни пятно и посмотри на матрицу.</b> s1 и s2 — масштабы вдоль его собственных осей. Центр здесь всегда (0, 0). Ползунки обновляют рисунок после отпускания.",
-        "<b>Rotate the spot and watch the matrix.</b> s1 and s2 are scales along its own axes. The center stays at (0, 0). The plot updates when you release a slider."))
+        "<b>При повороте пятна меняются числа в матрице.</b> s1 и s2 — масштабы вдоль его собственных осей. Центр здесь всегда (0, 0). Ползунки обновляют рисунок после отпускания.",
+        "<b>Rotating the spot changes the matrix entries.</b> s1 and s2 are scales along its own axes. The center stays at (0, 0). The plot updates on slider release."))
     box = widgets.VBox([hint, *[controls[key] for key in ("s1", "s2", "angle", "x", "y", "preset", "reset")], output])
     box.course_controls = controls
     box.course_output = output

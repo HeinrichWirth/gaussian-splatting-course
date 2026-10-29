@@ -1,19 +1,15 @@
-[Open the Jupyter notebook](../../notebooks/en/lesson-03.ipynb)
-
-You can read the lesson and see the plots here. To try the sliders, open the notebook in Jupyter.
+[Jupyter notebook](../../notebooks/en/lesson-03.ipynb)
 
 
 # Lesson 3. A Gaussian on a Plane: From a Bell Curve to a Spot
 
-[Course plan and setup](../../README.md) · [Lesson 2](lesson-02-en.md) · [Русский](../ru/lesson-03.md) · [Next lesson](lesson-04-en.md)
+[Course plan](../../README.md) · [Lesson 2](lesson-02-en.md) · [Русский](../ru/lesson-03.md) · [Next lesson](lesson-04-en.md)
 
-In the previous lesson, we moved along a ruler and calculated a weight at each point. An image needs more than one ruler: we can move right, or we can move up. Let's add a second coordinate and see how the familiar bell curve becomes a soft spot.
+In the previous lesson, we moved along a ruler and calculated a weight at each point. An image needs more than one ruler: we can move right, or we can move up. We'll add a second coordinate and see how the familiar bell curve becomes a soft spot.
 
 We'll start with three pictures of the same function. Then we'll pick one point and calculate its weight in two ways. The operations are familiar: subtract, divide, square, and take an exponential. The new part is how we combine the two directions.
 
 ## 1. One Spot in Three Pictures
-
-Run the cells from top to bottom. GitHub shows the saved figures; the sliders work in Jupyter using the [setup instructions](../../README.md).
 
 On the left, weight is shown as color: dark areas are weak, bright areas are strong. In the middle, the same weight is drawn as height, making a hill. On the right, lines join points with equal weight. **The hill's height is the function's value, not a third coordinate of an object.** We're still working on a plane.
 
@@ -47,20 +43,20 @@ display(plane_lab(language=LANG))
 
 ![Figure 1](../../assets/lesson3/en/figure-01.png)
 
-Try these four changes first:
+Four parameter changes reveal different parts of the picture:
 
-1. Choose **“Circle”** in the “Example” menu. The two scales are equal, so the spot spreads out equally in all directions.
-2. Return to the starting example: the scale along $x$ is 2, and along $y$ it is 1. The contours stretch to the left and right. The peak stays at height 1.
-3. Move the center's $y$ coordinate from 0 to 1. The spot moves up. The cross stays where it was, so the weight under it changes.
-4. Press “Reset” and move only “Point: x” and “Point: y.” The spot now stays in place; only the location where we sample it changes.
+1. In the **“Circle”** example, the two scales are equal, so the spot spreads out equally in all directions.
+2. In the starting example, the scale along $x$ is 2, and along $y$ it is 1. The contours stretch to the left and right. The peak stays at height 1.
+3. We move the center's $y$ coordinate from 0 to 1. The spot moves up. The cross stays where it was, so the weight under it changes.
+4. After a reset, we change only “Point: x” and “Point: y.” The spot now stays in place; only the location where we sample it changes.
 
 All three views use the same coordinate range, from −5 to 5. The weight scale stays between 0 and 1, and the color scale stays fixed too. An expanding spot therefore cannot hide behind an automatic change in the plot's scale.
 
-For the calculations below, press **“Reset”**: center $(0,0)$, scales 2 and 1, point $(2,1)$.
+The calculations below use the starting example: center $(0,0)$, scales 2 and 1, point $(2,1)$.
 
 ## 2. Two Coordinates Instead of One
 
-Read $(2,1)$ in order: first $x=2$, then $y=1$. From the origin, move two units right and one unit up. Positive $y$ points upward in this lesson. Image arrays often count rows downward from the top; we'll return to that different convention when we work with pixels.
+The pair $(2,1)$ has an order: first $x=2$, then $y=1$. From the origin, we move two units right and one unit up. Positive $y$ points upward in this lesson. Image arrays often count rows downward from the top; we'll return to that different convention when we work with pixels.
 
 The center now has two numbers too: $(\mu_x,\mu_y)$. The small letters below are called **subscripts**. Here they only name the direction: $\mu_x$ is “mu along x,” and $\mu_y$ is “mu along y.” They do not mean multiplication by $x$ or $y$.
 
@@ -76,9 +72,9 @@ The function takes two numbers and returns **one**. Both the map's color and the
 
 We'll measure the point, center, and scales in the same units, such as centimeters. The demo uses arbitrary units. Both scales must be greater than zero. For now, the width directions line up with the $x$ and $y$ axes; we'll rotate the spot in the next lesson.
 
-## 3. Use One Bell Curve for Each Direction
+## 3. One Bell Curve for Each Direction
 
-First, temporarily ignore the vertical direction. Horizontally, everything works just as in lesson 2:
+For now, we set the vertical direction aside. Horizontally, everything works just as in lesson 2:
 
 ```math
 d_x=x-\mu_x=2-0=2,
@@ -93,7 +89,7 @@ w_x=\exp\left(-\frac{u_x^2}{2}\right)
 =\exp(-0.5)\approx0.606531.
 ```
 
-$w_x$ is a short name for the weight based **only on the horizontal direction**. Now repeat the calculation vertically:
+$w_x$ is a short name for the weight based **only on the horizontal direction**. Now we repeat the calculation vertically:
 
 ```math
 d_y=y-\mu_y=1-0=1,
@@ -108,7 +104,7 @@ w_y=\exp\left(-\frac{u_y^2}{2}\right)
 
 We moved two coordinate units horizontally and one vertically, but the offsets **in scale units** are the same. That's why the two weights match.
 
-For our spot, multiply them:
+For our spot, we multiply them:
 
 ```math
 f(x,y)=w_x\cdot w_y.
@@ -154,7 +150,7 @@ e^{-0.5}\cdot e^{-0.5}
 
 The two exponents, each $-0.5$, add to $-1$. In general, the rule is $e^a\cdot e^b=e^{a+b}$. Here, $a$ and $b$ stand for any two exponents.
 
-Substitute our expressions for them. We can follow the whole change one line at a time:
+We substitute our expressions for them. We can follow the whole change one line at a time:
 
 ```math
 \begin{aligned}
@@ -166,9 +162,9 @@ f(x,y)&=\exp\left(-\frac{u_x^2}{2}\right)\cdot\exp\left(-\frac{u_y^2}{2}\right)\
 
 In the last line, both fractions have the same denominator, 2. We add their numerators and keep the common division. We are adding **squared offsets inside the exponent**, not adding the finished weights outside it.
 
-## 5. Assemble the Formula and Read It from the Inside
+## 5. Building the Formula from the Inside
 
-Now replace $u_x$ and $u_y$ with the operations they stand for:
+Now we replace $u_x$ and $u_y$ with the operations they stand for:
 
 ```math
 f(x,y)=\exp\left[-\frac12\left(
@@ -179,15 +175,15 @@ f(x,y)=\exp\left[-\frac12\left(
 
 The square brackets work just like round parentheses here: they group the expression passed to the exponential. The two fractions describe the two directions. Each small superscript 2 applies to **the whole fraction**, including its denominator.
 
-Read the operations in this order:
+The calculation follows this order:
 
-1. Subtract the center separately from $x$ and $y$.
-2. Divide each offset by the scale for **its own** direction.
-3. Square both resulting numbers.
-4. Add the two squares.
-5. Divide the sum by 2, put a minus sign in front, and evaluate the exponential.
+1. We subtract the center separately from $x$ and $y$.
+2. We divide each offset by the scale for **its own** direction.
+3. We square both resulting numbers.
+4. We add the two squares.
+5. We divide the sum by 2, put a minus sign in front, and evaluate the exponential.
 
-Call the sum of squares $q$ so that we can keep track of the intermediate value:
+Calling the sum of squares $q$ gives us a name for the intermediate value:
 
 ```math
 q=u_x^2+u_y^2,
@@ -198,17 +194,17 @@ $u_x$ and $u_y$ are dimensionless: centimeters canceled when divided by centimet
 
 At the center, both offsets are zero. Then $q=0^2+0^2=0$ and $f(\mu_x,\mu_y)=e^0=1$. Moving in any direction makes at least one square positive. The exponent becomes negative, and the weight becomes less than 1. Changing the scales still preserves the peak of 1.
 
-## 6. Calculate the Point $(2,1)$ Without Skipping Steps
+## 6. Working Through the Point $(2,1)$ Without Skipping Steps
 
 The center is $(0,0)$, with scales $\sigma_x=2$ and $\sigma_y=1$. Both coordinates and scales use the same units.
 
 | Step | Horizontal direction | Vertical direction |
 |---|---|---|
-| Subtract the center | $d_x=2-0=2$ | $d_y=1-0=1$ |
-| Divide by the corresponding scale | $u_x=2/2=1$ | $u_y=1/1=1$ |
-| Square | $u_x^2=1\cdot1=1$ | $u_y^2=1\cdot1=1$ |
+| Subtracting the center | $d_x=2-0=2$ | $d_y=1-0=1$ |
+| Dividing by the corresponding scale | $u_x=2/2=1$ | $u_y=1/1=1$ |
+| Squaring | $u_x^2=1\cdot1=1$ | $u_y^2=1\cdot1=1$ |
 
-Now join the two branches:
+Now the two branches join:
 
 ```math
 q=1+1=2,\qquad -q/2=-2/2=-1,
@@ -217,7 +213,7 @@ q=1+1=2,\qquad -q/2=-2/2=-1,
 
 On the heatmap, this number determines the color under the cross. On the hill, it is the marked point's height. In the contour view, the point lies between the lines for weights of approximately 0.607 and 0.135.
 
-Put each operation on a separate Python line. `qx` and `qy` hold the squares, `exponent` holds the exponent, and `weight` holds the final weight. Here, `*` means multiplication, `/` means division, and `=` stores the expression on the right in the variable on the left.
+Each operation gets a separate Python line. `qx` and `qy` hold the squares, `exponent` holds the exponent, and `weight` holds the final weight. Here, `*` means multiplication, `/` means division, and `=` stores the expression on the right in the variable on the left.
 
 ```python
 x, y = 2.0, 1.0
@@ -251,7 +247,7 @@ weight = 0.367879
 
 ## 7. From a Circle to an Ellipse
 
-The first figure's right-hand panel contains lines of equal weight. Pick the one where the weight equals $e^{-1/2}\approx0.606531$. We already know that this weight occurs when $q=1$. The points on our chosen curve therefore satisfy:
+The first figure's right-hand panel contains lines of equal weight. We take the one where the weight equals $e^{-1/2}\approx0.606531$. We already know that this weight occurs when $q=1$. The points on our chosen curve therefore satisfy:
 
 ```math
 \left(\frac{x-\mu_x}{\sigma_x}\right)^2+
@@ -262,7 +258,7 @@ A **contour** is a line of equal values. Crossing it does not turn off the Gauss
 
 When both scales equal 1 and the center is at the origin, the condition becomes $x^2+y^2=1$. This is a circle of radius 1. The connection to distance comes from the Pythagorean theorem: the square of a right triangle's diagonal side equals the sum of the squares of its other two sides. For example, moving 3 units right and 4 units up gives $3^2+4^2=9+16=25$, so the distance from the origin is $\sqrt{25}=5$. A constant sum $x^2+y^2$ therefore means a constant distance from the origin.
 
-Now stretch the horizontal direction by a factor of two: $\sigma_x=2$, $\sigma_y=1$. After division, the point $(2,0)$ becomes $(1,0)$, while $(0,1)$ remains $(0,1)$. Both have a sum of squared scaled coordinates equal to 1. In the original coordinates, the circle has become an **ellipse**.
+Now we stretch the horizontal direction by a factor of two: $\sigma_x=2$, $\sigma_y=1$. After division, the point $(2,0)$ becomes $(1,0)$, while $(0,1)$ remains $(0,1)$. Both have a sum of squared scaled coordinates equal to 1. In the original coordinates, the circle has become an **ellipse**.
 
 For this contour, the distance from the center to the rightmost point is $\sigma_x$, and to the topmost point it is $\sigma_y$. These segments are called **semiaxes**. The contour's full horizontal width is $2\sigma_x$, and its full vertical height is $2\sigma_y$. These are the dimensions of one particular level curve; the entire soft spot still has no finite boundary.
 
@@ -272,7 +268,7 @@ display(ellipse_figure(language=LANG))
 
 ![Figure 2](../../assets/lesson3/en/figure-02.png)
 
-Let's check a point between the axis endpoints too. For the ellipse, the figure's table uses $(\sqrt{2},1/\sqrt{2})$, approximately $(1.414214,0.707107)$.
+We can check a point between the axis endpoints too. For the ellipse, the figure's table uses $(\sqrt{2},1/\sqrt{2})$, approximately $(1.414214,0.707107)$.
 
 For this point:
 
@@ -295,7 +291,7 @@ By contrast, $(2,1)$ gives $1^2+1^2=2$, for a weight of about 0.367879. Moving o
 
 The value 0.606531 means roughly 61% **of the peak weight**. It does not mean that the ellipse contains 61% of an area or a probability.
 
-## 8. Cut Through the Spot and Find the Familiar Bell Curve
+## 8. A Slice Through the Spot Reveals the Familiar Bell Curve
 
 We can draw a horizontal line on the heatmap and move only along it. Then $y$ stays fixed while $x$ changes. This is a **slice** of the function: we're examining the plane along one chosen line.
 
@@ -307,7 +303,7 @@ f(x,\mu_y)=w_x\cdot1=w_x.
 
 This is exactly the one-dimensional Gaussian from the previous lesson. Its center along $x$ is $\mu_x$, its scale is $\sigma_x$, and its peak is 1.
 
-But a slice does not have to pass through the peak. Fix $y=1$, with $\mu_y=0$ and $\sigma_y=1$. Then $u_y=(1-0)/1=1$, so $w_y=e^{-1/2}\approx0.606531$ at **every** point on this horizontal line. It simply multiplies the whole horizontal bell curve:
+But a slice does not have to pass through the peak. We fix $y=1$, with $\mu_y=0$ and $\sigma_y=1$. Then $u_y=(1-0)/1=1$, so $w_y=e^{-1/2}\approx0.606531$ at **every** point on this horizontal line. It simply multiplies the whole horizontal bell curve:
 
 ```math
 f(x,1)=w_x\cdot0.606531\ldots
@@ -323,21 +319,21 @@ display(slices_figure(mux=0, muy=0, sx=2, sy=1, x=2, y=1, language=LANG))
 
 ![Figure 3](../../assets/lesson3/en/figure-03.png)
 
-## 9. Change One Number and Follow the Reason
+## 9. How One Number Changes the Weight
 
-Return to point $(2,1)$, center $(0,0)$, and scales 2 and 1. Before any changes, the weight is approximately 0.367879.
+We return to point $(2,1)$, center $(0,0)$, and scales 2 and 1. Before any changes, the weight is approximately 0.367879.
 
-**Narrow only the horizontal scale to $\sigma_x=1$.** The offsets are still $d_x=2$ and $d_y=1$. But now $u_x=2/1=2$, while $u_y=1/1=1$. Then $q=2^2+1^2=4+1=5$, the exponent is $-5/2=-2.5$, and the weight is $e^{-2.5}\approx0.082085$. The point is farther away in units of the new horizontal scale.
+**We narrow only the horizontal scale to $\sigma_x=1$.** The offsets are still $d_x=2$ and $d_y=1$. But now $u_x=2/1=2$, while $u_y=1/1=1$. Then $q=2^2+1^2=4+1=5$, the exponent is $-5/2=-2.5$, and the weight is $e^{-2.5}\approx0.082085$. The point is farther away in units of the new horizontal scale.
 
-**Restore $\sigma_x=2$ and widen the vertical scale to $\sigma_y=2$.** We get $u_x=2/2=1$ and $u_y=1/2=0.5$. The squares, 1 and 0.25, give $q=1.25$, the exponent is $-1.25/2=-0.625$, and the weight is $e^{-0.625}\approx0.535261$. Vertically, the same point is now closer in scale units, so the combined weight increases.
+**We restore $\sigma_x=2$ and widen the vertical scale to $\sigma_y=2$.** We get $u_x=2/2=1$ and $u_y=1/2=0.5$. The squares, 1 and 0.25, give $q=1.25$, the exponent is $-1.25/2=-0.625$, and the weight is $e^{-0.625}\approx0.535261$. Vertically, the same point is now closer in scale units, so the combined weight increases.
 
-**Restore scales 2 and 1, then move the center to $(1,-1)$.** At the original point $(2,1)$, the offsets become $d_x=2-1=1$ and $d_y=1-(-1)=2$. Thus $u_x=1/2=0.5$, $u_y=2/1=2$, the sum is $q=0.25+4=4.25$, the exponent is $-2.125$, and the weight is approximately 0.119433.
+**We restore scales 2 and 1, then move the center to $(1,-1)$.** At the original point $(2,1)$, the offsets become $d_x=2-1=1$ and $d_y=1-(-1)=2$. Thus $u_x=1/2=0.5$, $u_y=2/1=2$, the sum is $q=0.25+4=4.25$, the exponent is $-2.125$, and the weight is approximately 0.119433.
 
 If we move the point by the same offset $(1,-1)$ as the center, it ends up at $(3,0)$. The differences return to $3-1=2$ and $0-(-1)=1$, so the weight returns to 0.367879. What matters is the offset **from the center**, not where the whole arrangement sits relative to the origin.
 
 ## 10. A Function for Any Point
 
-Let's put the calculation into a function. It takes two point coordinates, two center coordinates, and two scales. All six numbers must be finite, and both scales must be positive.
+We can put the calculation into a function. It takes two point coordinates, two center coordinates, and two scales. All six numbers must be finite, and both scales must be positive.
 
 The `math.isfinite` check rejects infinity and `NaN`, a special value meaning “not a number.” `all` checks that the condition holds for each of the six values. The remaining lines repeat the operations we've already worked out by hand.
 
@@ -371,9 +367,9 @@ for x, y in [(0, 0), (2, 0), (0, 1), (2, 1), (-2, -1)]:
 (-2, -1) -> 0.367879
 ```
 
-Compare the numbers with the sliders. The final point, $(-2,-1)$, is the reflection of $(2,1)$ through the center. The offsets change sign, but their squares match, so the weights match too.
+The demo gives the same numbers. The final point, $(-2,-1)$, is the reflection of $(2,1)$ through the center. The offsets change sign, but their squares match, so the weights match too.
 
-A zero scale produces a `ValueError`: we cannot divide by zero. To try it, call `plane_weight(2, 1, 0, 0, 0, 1)` in a separate cell. This deliberately checks invalid input; restore a positive scale afterward.
+A zero scale produces a `ValueError`: we cannot divide by zero. The call `plane_weight(2, 1, 0, 0, 0, 1)` demonstrates the check: it returns an error message instead of a weight. With a positive scale, the calculation works again.
 
 The screen shows only the square from −5 to 5. The Gaussian itself does not end at that square's edge. Beyond three scale units, for example, the weight is small but mathematically still positive. A computer may round extremely small results down to zero, as we saw in the previous lesson.
 
@@ -381,11 +377,11 @@ For now, we're defining a spatial weight with a peak of 1. Color, opacity, and o
 
 ## 11. A Few Checks Before Looking at the Slider
 
-Unless a question explicitly changes them, use center $(0,0)$ and scales $\sigma_x=2$, $\sigma_y=1$. Write down your prediction first, then calculate and compare with the demo.
+The questions use center $(0,0)$ and scales $\sigma_x=2$, $\sigma_y=1$ unless stated otherwise. Each experiment starts with a prediction, followed by a calculation and a comparison with the figure.
 
 ### 1. Two Different Points, One Weight
 
-Compare $(2,0)$ and $(0,1)$. Which has the greater weight?
+Do points $(2,0)$ and $(0,1)$ have the same weight, or is one greater?
 
 <details>
 <summary>Worked answer</summary>
@@ -394,7 +390,7 @@ At the first point, $u_x=2/2=1$ and $u_y=0/1=0$, so $q=1^2+0^2=1$. At the second
 
 </details>
 
-### 2. Walk to the Corner
+### 2. At the Corner
 
 Both previous points lie on the 0.606531 contour. Will $(2,1)$ lie on it too?
 
@@ -405,7 +401,7 @@ At $(2,1)$, $u_x=1$ and $u_y=1$, so $q=1+1=2$. The exponent is $-2/2=-1$, and th
 
 </details>
 
-### 3. Move Everything Together
+### 3. Moving Everything Together
 
 The center moves to $(1,-1)$ and the point to $(3,0)$. The scales stay the same. Does the weight differ from the original point $(2,1)$ with center $(0,0)$?
 
@@ -418,7 +414,7 @@ The new offsets are $3-1=2$ and $0-(-1)=1$, matching the original ones. Dividing
 
 ### 4. A Slice Misses the Peak
 
-Fix $y=2$. What is the horizontal slice's maximum height? What weight does it show at $x=2$?
+With $y=2$ fixed, what is the horizontal slice's maximum height? What weight does it show at $x=2$?
 
 <details>
 <summary>Worked answer</summary>
@@ -431,7 +427,7 @@ The horizontal weight reaches its maximum of 1 at $x=\mu_x=0$. The slice therefo
 
 ### 5. What If We Add the Finished Weights?
 
-Try using $(w_x+w_y)/2$ instead of the product. At the center, this gives 1, which looks promising. Check point $(0,3)$.
+Replacing the product with $(w_x+w_y)/2$ gives 1 at the center, which looks promising. What happens at point $(0,3)$?
 
 <details>
 <summary>Worked answer</summary>

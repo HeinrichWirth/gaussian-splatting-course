@@ -463,10 +463,10 @@ def pipeline_figure(language="ru"):
         node(training, x, 0.77, title, body)
     for first, second in zip(centers[:-1], centers[1:]):
         arrow(training, (first + 0.11, 0.77), (second - 0.11, 0.77))
-    node(training, 0.87, 0.37, _text(language, "5. Сравнение", "5. Compare"),
+    node(training, 0.87, 0.37, _text(language, "5. Сравнение", "5. Comparison"),
          _text(language, "Насколько рендер\nотличается от снимка?", "How different is the\nrender from the photo?"), color=ORANGE)
     node(training, 0.62, 0.37, _text(language, "6. Обновление", "6. Update"),
-         _text(language, "Меняем параметры\nгауссиан", "Change the Gaussian\nparameters"), color=GREEN)
+         _text(language, "Меняем параметры\nгауссиан", "Gaussian parameter\nupdates"), color=GREEN)
     arrow(training, (0.87, 0.65), (0.87, 0.49), ORANGE)
     arrow(training, (0.76, 0.37), (0.73, 0.37), GREEN)
     arrow(training, (0.62, 0.49), (0.62, 0.65), GREEN)
@@ -486,7 +486,7 @@ def pipeline_figure(language="ru"):
                       loc="left", fontsize=13, color=INK, pad=10)
     labels = _text(language,
                     [("Сохранённая модель", "Параметры гауссиан"), ("Новая камера", "Выбираем ракурс"), ("Новое изображение", "Рендерим модель")],
-                    [("Saved model", "Gaussian parameters"), ("New camera", "Choose a viewpoint"), ("New image", "Render the model")])
+                    [("Saved model", "Gaussian parameters"), ("New camera", "Camera viewpoint"), ("New image", "Model rendering")])
     for x, (heading, body) in zip([0.16, 0.50, 0.84], labels):
         node(viewing, x, 0.55, heading, body, color=PURPLE, width=0.27, height=0.65)
     arrow(viewing, (0.305, 0.55), (0.355, 0.55), PURPLE)
@@ -547,8 +547,8 @@ def gaussian_lab(language="ru"):
 
     controls["reset"].on_click(reset)
     hint = widgets.HTML(value=_text(language,
-                                    "<b>Измени один параметр.</b> Значение обновляется после отпускания ползунка. Оси графика остаются на месте.",
-                                    "<b>Change one parameter.</b> Values update when you release the slider. The plot axes stay fixed."))
+                                    "Значение обновляется после отпускания ползунка. Оси графика остаются на месте.",
+                                    "Values update after the slider is released. The plot axes stay fixed."))
     box = widgets.VBox([hint, controls["mu"], controls["sigma"], controls["x"], controls["preset"], controls["reset"], output])
     box.course_controls = controls
     box.course_output = output

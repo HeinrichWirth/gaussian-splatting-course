@@ -1,13 +1,11 @@
-[Open the Jupyter notebook](../../notebooks/en/lesson-01.ipynb)
-
-You can read the lesson and see the plots here. To try the sliders, open the notebook in Jupyter.
+[Jupyter notebook](../../notebooks/en/lesson-01.ipynb)
 
 
 # Lesson 1. What is Gaussian Splatting, and what problem does it solve?
 
 [Course outline](../../README.md) · [Русский](../ru/lesson-01.md) · [Next lesson: one Gaussian on a line](lesson-02-en.md)
 
-Imagine walking around a mug and taking a few photographs. Now you want to rotate it on a screen and look from a place where the camera **never stood**. You have the photographs. How do you turn them into that kind of viewer?
+We have a few photographs of a mug from different sides. The idea is to rotate it on a screen and look from a place where the camera **never stood**. The photographs are there. What would turn them into that kind of viewer?
 
 We will start by rotating a small scene, taking it apart, changing a few numbers, and watching what happens to the image. Then we will follow the path from photographs to a finished model: what it stores, how training finds those values, and what the program does when we simply move the camera.
 
@@ -15,15 +13,13 @@ Along the way, we will look at a limitation that is easy to miss: being able to 
 
 No matrices or derivatives are needed yet. First, let us see what we are working with. In lesson 2, we will take one soft spot and work through its mathematics one operation at a time.
 
-## 1. First, take a look
+## 1. A Small Scene
 
 We will start with a colored sphere above a plane. It is a small scene: **192 Gaussians**, with 128 on the sphere and 64 on the plane. Their positions, shapes, and colors are already specified in the code. Nothing has been trained from photographs here; this example lets us explore how the pieces work.
 
 The camera is simplified too: distant objects do not shrink with perspective as they would in an ordinary photograph. This is an **orthographic** camera, with parallel projection directions. It makes the shapes easier to examine at first. We will introduce perspective and full rendering later.
 
 To decide which footprint goes over another, the viewer compares the depths of their centers. That ordering can be wrong when shapes intersect in complicated ways. It is enough for our first experiments; we will return to overlap later.
-
-If you are reading on GitHub, the saved figures are already visible. To move the sliders, open this notebook in Jupyter using the [setup instructions](../../README.md) and run the cells in order. You can also choose **Run All** to run every cell. The first block imports the tools from the course folder; for now, you only need to run it.
 
 ```python
 %matplotlib inline
@@ -53,7 +49,7 @@ display(scene_overview(language=LANG))
 
 ![Figure 1](../../assets/lesson1/en/figure-01.png)
 
-These are three views of **the same data from the same viewpoint**. Notice what each mode adds:
+These are three views of **the same data from the same viewpoint**. Each mode adds something:
 
 | Mode | What is shown | What to look for |
 |---|---|---|
@@ -69,21 +65,21 @@ Switching modes has not removed any centers. We are displaying the same collecti
 display(scene_lab(language=LANG))
 ```
 
-## 2. Rotate the scene and try five things
+## 2. What Changes as the Camera and Parameters Move
 
-Before each change, predict what will happen to the image. Then check with the controls.
+Five changes are easy to follow in the image.
 
-1. **Switch between the three modes without moving the camera.** Find a part of the plane with gaps between the centers. Now switch to Composite image. Contributions around the existing centers fill in those gaps.
-2. **Move Camera orbit and View elevation.** The first slider takes the camera around the scene; the second lets you look from above or from the side. The plane looks broad from one direction and almost like a strip from another. The scene itself has stayed the same.
-3. **Select a Gaussian and enable Only the selected Gaussian.** The element's number is called its index: its place in a list. That number does not inherently tell the program “chair,” “wall,” or “sphere.” Compare the selected element in Contours and Composite image modes.
-4. **Change the selected Gaussian's opacity.** In Composite image mode, try 0, about 0.5, and 1. At zero, its color contribution disappears. Increasing the value makes its influence stronger. Now switch to Centers: the point is still there because the element remains in the data.
-5. **Turn off isolation and click Reset.** Among all the other Gaussians, a change to one element can be easy to miss. Reset brings back the original parameters and viewpoint so you can repeat the experiment.
+1. **Three modes with a fixed camera.** The plane has gaps between its centers. In Composite image mode, contributions around the existing centers fill those gaps.
+2. **Camera orbit and view elevation.** The first slider takes the camera around the scene; the second changes the view from above to a view from the side. The plane looks broad from one direction and almost like a strip from another. The scene itself has stayed the same.
+3. **One Gaussian in isolation.** The “Only the selected Gaussian” switch leaves one element on screen. Its number is called its index: its place in a list. That number does not inherently tell the program “chair,” “wall,” or “sphere.” Its contour shows the shape; Composite image mode shows its soft color contribution.
+4. **Opacity 0, about 0.5, and 1.** In Composite image mode, zero makes the color contribution disappear. A larger value makes it stronger. In Centers mode, the point is still there because the element remains in the data.
+5. **The whole scene and Reset.** Among all the other Gaussians, a change to one element can be easy to miss. Reset brings back the original parameters and viewpoint, giving the experiment the same starting image again.
 
 We have already produced several different images without training anything. Each camera movement asked the program to compute another view of the same collection of elements.
 
 ## 3. Where does a new view come from?
 
-Back to the mug. In the front photograph, the handle is on the right. Walk around the table, and it may appear on the left or disappear behind the body. Stretching the first photograph cannot give us those changes: it only records pixel colors from one viewpoint.
+Back to the mug. In the front photograph, the handle is on the right. From the other side of the table, it may appear on the left or disappear behind the body. Stretching the first photograph cannot give us those changes: it only records pixel colors from one viewpoint.
 
 A photograph is a flat grid of colored pixels. Each pixel gives a color at one location **in that photograph**. That value alone does not tell us what a camera would see after moving one step to the left.
 
@@ -95,23 +91,23 @@ Matching the photographs is already useful. How accurately the model describes t
 
 ## 4. What does one Gaussian store?
 
-For a first picture, imagine a soft spot of paint. You can move it, stretch it, rotate it, or make it more noticeable. In 3D, we have a distribution of influence in space; projecting it produces a footprint on the screen. Paint is a useful analogy for the softness. It does not imply liquid behavior or a hard shell.
+A soft spot of paint gives us a useful first picture: it can move, stretch, rotate, or become more noticeable. In 3D, we have a distribution of influence in space; projecting it produces a footprint on the screen. Paint is a useful analogy for the softness. It does not imply liquid behavior or a hard shell.
 
-Select an element and look at its card. The Sphere and Plane labels were assigned manually when the example was built. No object recognition was needed to produce those labels.
+Each selected element has a card with its parameters. The Sphere and Plane labels were assigned manually when the example was built. No object recognition was needed to produce those labels.
 
 Now let us examine four groups of properties. We will use simple numbers below, so they may differ from the selected element's values in the card.
 
 ### Position: where we put the center
 
-On a plane, a position needs two coordinates; in space, it needs three. Take **(0, 0, 1)**. In our experiment's coordinates, that means zero displacement along both directions of the plane and a height of 1 above it. Here, the vertical direction is called **z**; other programs may arrange their axes differently. The unit is arbitrary, so 1 does not necessarily mean one meter.
+On a plane, a position needs two coordinates; in space, it needs three. For example, **(0, 0, 1)**. In our experiment's coordinates, that means zero displacement along both directions of the plane and a height of 1 above it. Here, the vertical direction is called **z**; other programs may arrange their axes differently. The unit is arbitrary, so 1 does not necessarily mean one meter.
 
-The Gaussian's weight is greatest at its center. Move the center, and the entire distribution moves with it.
+The Gaussian's weight is greatest at its center. Moving the center moves the entire distribution with it.
 
 ### Shape: which way to stretch it
 
-Think of an ordinary balloon and a flattened one. The second can spread influence widely along a surface and narrowly across it. Rotation sets the directions in which it stretches.
+An ordinary balloon and a flattened one make a useful comparison. The second can spread influence widely along a surface and narrowly across it. Rotation sets the directions in which it stretches.
 
-For example, scales **(0.2, 0.2, 0.2)** are equal along the Gaussian's three local directions. Increase the first to **0.4**, and the distribution becomes wider in that direction. There is still no hard outer edge: influence gradually fades as we move away from the center.
+For example, scales **(0.2, 0.2, 0.2)** are equal along the Gaussian's three local directions. Increasing the first to **0.4** makes the distribution wider in that direction. There is still no hard outer edge: influence gradually fades as we move away from the center.
 
 In lesson 2, we will first explore one such scale on a line. Then we will add a second direction, build a footprint on a plane, and return to 3D.
 
@@ -123,7 +119,7 @@ Each Gaussian in this scene has a constant color. In full 3DGS, color can depend
 
 ### Opacity: how noticeable its contribution is
 
-Return to the slider from the experiment. Its values lie between **0 and 1**. At 0, the Gaussian adds nothing to the image's color. Increase the value, and its contribution grows stronger.
+The opacity slider ranges from **0 to 1**. At 0, the Gaussian adds nothing to the image's color. A larger value makes its contribution stronger.
 
 Even with opacity **1**, the footprint stays soft. Influence is stronger at the center and weaker farther away; the entire footprint does not become an opaque plate. Neighboring elements and their overlap order also affect the final color.
 
@@ -133,7 +129,7 @@ That is why the control is called **opacity**: a larger number means a stronger 
 
 One soft footprint only gets us so far. Several well-placed Gaussians can describe a color transition, an edge, or a surface region. Our sphere is built from many such elements, although no individual element inherently knows it is “part of a sphere.”
 
-Try isolating one Gaussian again, then bring the whole scene back. You can see how little one element describes and what becomes possible when they work together.
+In isolation, one Gaussian describes very little. Once the rest of the scene returns, that same element becomes part of a surface.
 
 It is tempting to jump from this to “add more Gaussians, get a better image.” So far, though, we have only added parameters to adjust. An accurate image needs suitable positions, shapes, and other values, enough observations, and a training process that can fit them.
 
@@ -159,27 +155,27 @@ display(pipeline_figure(language=LANG))
 | **Training** | Gaussians, cameras, and input photographs | Adjusted parameters whose rendered images match the photographs more closely |
 | **Viewing** | A saved model and a chosen camera | An image from the requested viewpoint |
 
-Notice that camera positions also have to be estimated. Errors at that stage make it harder for training to bring the model into agreement with the photographs.
+Camera positions also have to be estimated. Errors at that stage make it harder for training to bring the model into agreement with the photographs.
 
 ### What training does
 
-Take one input photograph and put a virtual camera at its corresponding position. Render the current model. Now we can place the two images side by side: where does the color already match, where is the object slightly displaced, and where has a detail disappeared?
+We place a virtual camera at the position of one input photograph and render the current model. Now we can place the two images side by side: where does the color already match, where is the object slightly displaced, and where has a detail disappeared?
 
 We turn those differences into a numerical error. The algorithm changes parameters to reduce it, then takes another viewpoint and repeats the comparison. Basic 3DGS also adds and removes Gaussians. Adjusting existing elements and changing the number of elements are two related parts of the process.
 
-For now, keep this sequence in mind: **render an image → compare it with the photograph → adjust the parameters → repeat**. In lessons 6–9, we will calculate an error ourselves and work through an update with actual numbers. Full 3D training and changes to the Gaussian count come in lessons 16–17.
+The sequence is: **render an image → compare it with the photograph → adjust the parameters → repeat**. In lessons 6–9, we will calculate an error ourselves and work through an update with actual numbers. Full 3D training and changes to the Gaussian count come in lessons 16–17.
 
 ### What happens when we just view the model
 
-During viewing, the parameters have already been found and saved. Move the camera, and the renderer uses those parameters to compute the next frame. It does not have to return to the photographs and train the model again after every turn. Training time and viewing speed are therefore separate measurements.
+During viewing, the parameters have already been found and saved. After the camera moves, the renderer uses those parameters to compute the next frame. It does not have to return to the photographs and train the model again after every turn. Training time and viewing speed are therefore separate measurements.
 
-The [original 3DGS project page](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) has real reconstructions and comparisons with reference images. There you can see what training from photographs produces. Our sphere and plane are still a manually built example for exploring the parameters.
+The [original 3DGS project page](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) has real reconstructions and comparisons with reference images. Our sphere and plane are still a manually built example for exploring the parameters; those reconstructions show the result of training from photographs.
 
-**You can try a real reconstruction too, if you have internet access.** Open Visual Comparisons on the project page. For one viewpoint, compare Ours with Ground Truth. Find one matching detail and one difference: an edge, a fine texture, or a highlight. Ground Truth is the reference for comparison; the label alone does not tell us that this particular frame was used for training. This is an extra experiment. The main lesson exercises work locally.
+In Visual Comparisons on the project page, Ours and Ground Truth show the method's result and a reference for the same viewpoint. Edges, fine textures, and highlights reveal which details match and which differ. Ground Truth is the reference for comparison; the label alone does not tell us that this particular frame was used for training. This is an extra experiment. The main lesson exercises work locally.
 
 ## 7. What about the side nobody photographed?
 
-Let us return to the limitation from the beginning. Look down on an object with cameras around it. The diagram below helps us see what is visible to each camera. It does not simulate training or reconstruction quality.
+Let us return to the limitation from the beginning. The next diagram shows an object and the surrounding cameras from above, making each camera's visible area easier to follow. It does not simulate training or reconstruction quality.
 
 ```python
 display(coverage_figure(language=LANG))
@@ -187,13 +183,13 @@ display(coverage_figure(language=LANG))
 
 ![Figure 3](../../assets/lesson1/en/figure-03.png)
 
-Look at the three regions:
+There are three cases in the diagram:
 
 1. **The region is visible to camera A.** Its photograph already contains an observation of that region.
 2. **The region is hidden from A but visible to camera B.** The second photograph adds something the first one is missing.
 3. **The region is hidden from both cameras.** These observations do not directly tell us what it looks like.
 
-Take two boxes with identical fronts. One has a red back; the other has a blue back. Photograph them only from the front, without capturing their backs directly or through reflections. The photographs will be identical. They cannot tell us which color was behind either box.
+Suppose we have two boxes with identical fronts. One has a red back; the other has a blue back. The camera records only the fronts, without capturing either back directly or through reflections. The photographs will be identical. They cannot tell us which color was behind either box.
 
 The program can still draw a back wall. To check its color, though, we need an observation from behind. If we assume a color instead, that assumption brings in information from elsewhere; it did not come from the input photographs.
 
@@ -215,17 +211,17 @@ We can now compare Gaussian Splatting with other approaches using the same quest
 
 Each approach has different variants. For example, [Instant-NGP](https://nvlabs.github.io/instant-ngp/) is a useful reason not to label the entire NeRF family “always slow.”
 
-The original 3DGS experiments combined high-quality images with fast rendering. For your own scene, quality and speed still need to be measured: the data, implementation, image resolution, work per frame, and computer all affect the result.
+The original 3DGS experiments combined high-quality images with fast rendering. For any new scene, quality and speed still need to be measured: the data, implementation, image resolution, work per frame, and computer all affect the result.
 
 Gaussians are also convenient for learning. We can pick an element, change a number, and see what happened to the image. That is how we will approach the next lessons.
 
-## 9. Try explaining it yourself
+## 9. A Few Questions About the Scene
 
-Answer first, then open the worked answer. If something is still confusing, return to the controls and repeat the experiment.
+Here are five situations from the same experiment, each with an explanation that can be checked in the scene.
 
 ### Exercise 1. What did the switch change?
 
-The camera stays still. You switch from Centers to Composite image, and fewer gaps are visible. Where did the more continuous image come from? Were new points added to the data?
+The camera stays still. Switching from Centers to Composite image leaves fewer visible gaps. Where did the more continuous image come from? Were new points added to the data?
 
 <details>
 <summary>Worked answer</summary>
@@ -236,7 +232,7 @@ The list still contains 192 elements. Centers mode only showed their positions. 
 
 ### Exercise 2. Why is the point still there?
 
-Isolate one Gaussian and set its opacity to 0. Its color contribution disappears in Composite image mode. Switch to Centers: why is its point still there?
+One Gaussian is shown in isolation with opacity 0. Its color contribution disappears in Composite image mode. Why is its point still there in Centers mode?
 
 <details>
 <summary>Worked answer</summary>
@@ -269,12 +265,12 @@ For ordinary viewing, the saved parameters and the new camera position are enoug
 
 ### Exercise 5. Would another thousand Gaussians help?
 
-Add a thousand random Gaussians to a model. Does it necessarily reproduce the input photographs more accurately now?
+Suppose a thousand random Gaussians are added to a model. Does it necessarily reproduce the input photographs more accurately now?
 
 <details>
 <summary>Worked answer</summary>
 
-So far, we have only gained more parameters. Those still need suitable values. Random positions and colors can spoil the image while giving the renderer more work. To check for improvement, compare the result with observations, including viewpoints held out for evaluation rather than used in training.
+So far, we have only gained more parameters. Those still need suitable values. Random positions and colors can spoil the image while giving the renderer more work. A comparison with observations reveals whether anything improved. That includes viewpoints held out for evaluation rather than used in training.
 
 </details>
 
@@ -284,7 +280,7 @@ We started with a colored sphere and found a collection of numbers behind it. Th
 
 The same collection can be shown as centers, contours, or soft footprints. Contours help us inspect the shapes without cutting off influence at their boundaries. Reconstruction fits parameters to observations; viewing uses the values already found.
 
-One more thing to carry forward: an extra photograph can reveal a hidden region. If a surface appears in none of our observations, we may simply have no reliable answer about its appearance.
+The observations still set a limit: an extra photograph can reveal a hidden region. If a surface appears in none of our observations, we may simply have no reliable answer about its appearance.
 
 Now we can unpack the soft footprint itself. How do we put numbers to influence that is strongest at the center and gradually fades away? In [lesson 2](lesson-02-en.md), we will start on a line, build a bell curve one operation at a time, and calculate its value at a selected point by hand.
 

@@ -103,13 +103,8 @@ def rewrite_links(text: str, source: Path, target: Path) -> str:
 
 def export_notebook(notebook, source: Path, target: Path, language: str, number: int) -> None:
     notebook_link = f"../../notebooks/{language}/lesson-{number:02}.ipynb"
-    label = "Открыть Jupyter-ноутбук" if language == "ru" else "Open the Jupyter notebook"
-    note = (
-        "Здесь можно прочитать урок и посмотреть готовые графики. Чтобы двигать ползунки, открой ноутбук в Jupyter."
-        if language == "ru" else
-        "You can read the lesson and see the plots here. To try the sliders, open the notebook in Jupyter."
-    )
-    parts = [f"[{label}]({notebook_link})\n\n{note}\n"]
+    label = "Jupyter-ноутбук" if language == "ru" else "Jupyter notebook"
+    parts = [f"[{label}]({notebook_link})\n"]
     image_number = 0
     image_dir = ROOT / "assets" / f"lesson{number}" / language
     image_dir.mkdir(parents=True, exist_ok=True)

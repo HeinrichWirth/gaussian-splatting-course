@@ -236,7 +236,7 @@ def editor_figure(layers=None, background=(1, 1, 1), selected=0,
             _text(language, f"Непрозрачность o = {layer['opacity']:.3f}", f"Opacity o = {layer['opacity']:.3f}"),
         ])
     else:
-        lines.append(_text(language, "Пустой холст. Добавь первое пятно.", "Empty canvas. Add the first spot."))
+        lines.append(_text(language, "Пустой холст. Здесь пока только фон.", "Empty canvas. Only the background remains."))
     lines.extend(["", _text(language, f"Проверяем точку ({x:g}, {y:g})", f"Probe at ({x:g}, {y:g})"),
                   "RGB = " + _rgb_text(trace["color"], 4),
                   _text(language, f"До фона осталось T = {trace['transmittance']:.4f}",
@@ -313,8 +313,8 @@ def gaussian_editor(language="ru"):
         "reset": widgets.Button(description=_text(language, "Сбросить всё", "Reset all"), icon="undo"),
         "export": widgets.Button(description=_text(language, "Выгрузить JSON", "Export JSON"), icon="download"),
         "import": widgets.Button(description=_text(language, "Загрузить JSON", "Import JSON"), icon="upload"),
-        "json": widgets.Textarea(value="", placeholder=_text(language, "Здесь появится сцена. Скопируй JSON или вставь сохранённый.",
-                                                               "Export a scene here, or paste a saved JSON scene."),
+        "json": widgets.Textarea(value="", placeholder=_text(language, "Здесь появится JSON сцены. Это же поле принимает сохранённый JSON.",
+                                                               "Exported scene JSON appears here. Saved scene JSON goes in the same field."),
                                    layout=widgets.Layout(width="100%", height="160px")),
     }
     output = widgets.Output()
@@ -427,8 +427,8 @@ def gaussian_editor(language="ru"):
         encoded = base64.b64encode(value.encode("utf-8")).decode("ascii")
         label = _text(language, "Скачать gaussian-scene.json", "Download gaussian-scene.json")
         download.value = f'<a download="gaussian-scene.json" href="data:application/json;base64,{encoded}">{label}</a>'
-        status.value = _text(language, "Сцена выгружена в поле ниже. Можно скопировать текст или скачать файл.",
-                             "The scene is in the text field below. Copy the text or download the file.")
+        status.value = _text(language, "JSON сцены появился в поле ниже. Текст доступен для копирования, файл — по ссылке.",
+                             "The scene is in the text field below and is available as a downloadable file.")
         return value
 
     def import_scene(value):
@@ -448,7 +448,7 @@ def gaussian_editor(language="ru"):
         except (ValueError, TypeError, KeyError):
             status.value = _text(language,
                 "<b>Сцена не загружена.</b> Нужен JSON нашего редактора: до 24 пятен, центры от −4 до 4, масштабы от 0.2 до 3, углы от −180° до 180°; RGB и непрозрачность от 0 до 1. Текущая сцена сохранена.",
-                "<b>Scene not loaded.</b> Use this editor's JSON: up to 24 spots, centers from −4 to 4, scales from 0.2 to 3, angles from −180° to 180°; RGB and opacity from 0 to 1. The current scene is unchanged.")
+                "<b>Scene not loaded.</b> This editor accepts its own JSON format: up to 24 spots, centers from −4 to 4, scales from 0.2 to 3, angles from −180° to 180°; RGB and opacity from 0 to 1. The current scene is unchanged.")
         else:
             status.value = _text(language, "Сцена загружена.", "Scene loaded.")
 
@@ -473,8 +473,8 @@ def gaussian_editor(language="ru"):
     controls["export"].on_click(export)
     controls["import"].on_click(import_clicked)
     hint = widgets.HTML(_text(language,
-        "<b>Первое пятно в списке — переднее.</b> Выбери пятно и меняй его параметры. Крестик отмечает пиксель, чей цвет разобран в таблице. До 24 пятен; картинка обновляется после отпускания ползунка.",
-        "<b>The first spot in the list is in front.</b> Select a spot and change its parameters. The cross marks the pixel calculated in the table. Up to 24 spots; the image updates when you release a slider."))
+        "<b>Первое пятно в списке — переднее.</b> Параметры относятся к выбранному пятну. Крестик отмечает пиксель, чей цвет разобран в таблице. До 24 пятен; картинка обновляется после отпускания ползунка.",
+        "<b>The first spot in the list is in front.</b> The controls change the selected spot. The cross marks the pixel calculated in the table. Up to 24 spots; the image updates when a slider is released."))
     layer_controls = widgets.VBox([controls["selected"], controls["x"], controls["y"],
         controls["sx"], controls["sy"], controls["angle"], controls["color"], controls["opacity"]])
     probe_controls = widgets.VBox([controls["background"], controls["probe_x"], controls["probe_y"], controls["outline"]])
