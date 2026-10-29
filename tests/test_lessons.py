@@ -14,6 +14,7 @@ import nbformat
 import numpy as np
 
 import course_demos as demos
+from scripts.build_lessons import github_markdown
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -116,6 +117,43 @@ class WidgetTests(unittest.TestCase):
 
 
 class MaterialTests(unittest.TestCase):
+    def test_github_math_cannot_become_markdown_headings(self):
+        # This exact layout broke on GitHub: bare equals signs became headings.
+        source = "Before $x=1$.\n\n$$\nx^2\n=\nx\\cdot x\n$$\n\nAfter."
+        expected = "Before $x=1$.\n\n```math\nx^2\n=\nx\\cdot x\n```\n\nAfter."
+        self.assertEqual(github_markdown(source), expected)
+        self.assertEqual(github_markdown("$$x^2=4$$"), "```math\nx^2=4\n```")
+
+    def test_github_math_keeps_examples_and_details_intact(self):
+        example = '```python\ntext = "$$"\n```\n\n'
+        details = "<details>\n<summary>Answer</summary>\n\n$$\nx=1\n$$\n\n</details>"
+        expected = example + details.replace("$$\nx=1\n$$", "```math\nx=1\n```")
+        self.assertEqual(github_markdown(example + details), expected)
+        for source in ("$$\nx=1", "$$\n$$"):
+            with self.assertRaises(ValueError):
+                github_markdown(source)
+
+    def test_github_math_rejects_unsupported_phantom(self):
+        for source in (r"The root: $\sqrt{\phantom{9}}$.", "$$\n\\sqrt{\\phantom{9}}\n$$"):
+            with self.assertRaisesRegex(ValueError, "phantom"):
+                github_markdown(source)
+        code = "```tex\n\\phantom{9}\n```"
+        self.assertEqual(github_markdown(code), code)
+
+    def test_every_display_formula_is_exported_as_fenced_math(self):
+        for language in ("ru", "en"):
+            for lesson in (1, 2):
+                nb = nbformat.read(ROOT/"notebooks"/language/f"lesson-{lesson:02}.ipynb", as_version=4)
+                formulas = []
+                for cell in nb.cells:
+                    if cell.cell_type == "markdown":
+                        formulas.extend(re.findall(r"(?ms)^\$\$\n(.*?)\n\$\$$", cell.source))
+                suffix = "-en" if language == "en" else ""
+                exported = (ROOT/"lessons"/language/f"lesson-{lesson:02}{suffix}.md").read_text(encoding="utf-8")
+                rendered_formulas = re.findall(r"(?ms)^```math\n(.*?)\n```$", exported)
+                self.assertEqual(rendered_formulas, formulas, f"{language}/lesson-{lesson:02}")
+                self.assertNotRegex(exported, r"(?m)^\$\$$")
+
     def test_notebooks_executed_and_translations_structurally_match(self):
         for lesson in (1, 2):
             notebooks = []

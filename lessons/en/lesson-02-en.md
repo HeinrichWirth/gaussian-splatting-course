@@ -1,23 +1,23 @@
 [Open the Jupyter notebook](../../notebooks/en/lesson-02.ipynb)
 
-Sliders work in a running Jupyter session. This page preserves the text, code, and static results.
+You can read the lesson and see the plots here. To try the sliders, open the notebook in Jupyter.
 
 
 # Lesson 2 — One Gaussian on a Line: Taking Apart the Bell Curve
 
 [Course outline and setup](../../README.md) · [Previous lesson](lesson-01-en.md) · [Русская версия](../ru/lesson-02.md)
 
-**Lesson outcome:** you will be able to build a bell curve, move it, change its width, and calculate its value at a selected point by hand. Every operation in the formula will have a clear purpose.
+Let's take one bell curve and see how it works. First, we'll move it around and change its width. Then we'll pick a point and work out, by hand, why it sits at that particular height. Along the way, we'll unpack every operation in the formula.
 
-You need ordinary arithmetic and the ability to run a Python cell. There are no derivatives, matrices, or probability theory here. We study only a **one-dimensional** Gaussian: one input coordinate → one output number.
+Ordinary arithmetic and the ability to run a Python cell are enough to get started. Derivatives, matrices, and probability theory can wait. For now, we're working with a **one-dimensional** Gaussian: give it one coordinate and get one number back.
 
-In lesson 1, Gaussians were soft spots used to build an image. Here, we examine the profile of one such spot along a line: stronger in the middle, weaker farther away. This is a teaching weight function. Pixel colors and overlapping spots come later.
+In lesson 1, we built an image from soft spots. Now we'll draw a line through one spot and see how its influence changes along that line: stronger in the middle, weaker farther away. We'll describe that influence with a number called a weight. Pixel colors and overlapping spots will come in later lessons.
 
 ## 1. Look at It and Try It First
 
-Run the cells from top to bottom. The first finds the course folder and loads the prepared visualization tools. You do not need to study their implementation now: later, we calculate the Gaussian itself using ordinary arithmetic.
+Run the cells from top to bottom. The first finds the course folder and loads the code that draws the plots and sliders. You can simply run it for now. Below, we'll calculate the Gaussian itself step by step, using ordinary arithmetic.
 
-The second cell displays the initial plot and the interactive lab. The static lesson keeps the plot visible; open this notebook in Jupyter using the README instructions to use the sliders.
+The second cell brings up the plot and sliders. On GitHub, you'll see a saved image. To move the sliders, open the notebook in Jupyter; the README explains how.
 
 ```python
 %matplotlib inline
@@ -52,32 +52,32 @@ display(gaussian_lab(language=LANG))
 
 ![Figure 1](../../assets/lesson2/en/figure-01.png)
 
-For now, **do not try to read the formula**. Try three experiments:
+Leave the formula for a moment. Let's try three things first:
 
 1. Move the center from 2 to −2. The bell moves, but its shape and peak height stay the same.
 2. Return the center to 2 and reduce the width from 2 to 1. The bell becomes narrower, while its peak remains at 1.
-3. Return the width to 2 and move the selected point along the graph. The measurement point and its value change; the bell itself stays the same.
+3. Return the width to 2 and move the point along the graph. We're checking the weight at a different place each time; the bell itself stays the same.
 
-The horizontal axis is a coordinate on a line. The vertical axis is a **weight**: how strongly the Gaussian contributes at that location. It is not the height of a physical object. The strip below the graph encodes the same values as brightness: greater weight → brighter.
+The horizontal axis gives the coordinate along the line. The vertical axis gives the **weight**: how strongly the Gaussian contributes there. We're not measuring the height of a physical object. The strip below the graph shows the same weight through brightness: greater weight → brighter.
 
-The plot axes stay fixed. Moving the center is therefore not hidden by a moving “camera.” In the calculations below, we use the same parameters: **center 2, width 2**. Our first selected point is **4**.
+The axes stay fixed, so you can see the bell move when you move its center. For the calculations below, return to **center 2 and width 2**. We'll start at point **4**.
 
 ## 2. How to Read One Point on the Graph
 
 Imagine a ruler. We selected the mark at 4 and want to know the weight there.
 
-| Notation | Read it as | Role in our example |
+| Notation | Read it as | What it means here |
 |---|---|---|
 | $x$ | “x” | The coordinate we inspect: 4 |
 | $\mu$ | “mu” | The center of the bell: 2 |
 | $\sigma$ | “sigma” | The width scale: 2; it must be greater than zero |
-| $f(x)$ | “f of x” | The calculated weight at coordinate $x$ |
+| $f(x)$ | “f of x” | The weight we'll get at point $x$ |
 
 The parentheses in $f(x)$ identify the function's input. This is **not** multiplication of a letter $f$ by a number $x$. Here, “function” simply means a rule: receive a coordinate, perform some operations, return a number.
 
 For our bell, $f(2)=1$: the center has the maximum weight. Writing $f(4)$ means “calculate the weight at 4.” We will obtain approximately 0.606531.
 
-The parameters $\mu$ and $\sigma$ define the whole bell. The coordinate $x$ selects where we measure that already-defined bell.
+Changing $\mu$ or $\sigma$ changes the bell itself. Changing $x$ just picks where on that bell we check the weight.
 
 ## 3. First Step: Measure from the Center
 
@@ -85,85 +85,85 @@ A coordinate alone does not tell us whether we are far from the bell. The point 
 
 We therefore subtract the center first:
 
-$$
+```math
 d=x-\mu.
-$$
+```
 
-The letter $d$ is a short name for an intermediate result: the **displacement from the center**. With $x=4$ and $\mu=2$:
+Let's call this **displacement from the center** $d$, so we don't have to write out the subtraction every time. With $x=4$ and $\mu=2$:
 
-$$
+```math
 d=4-2=2.
-$$
+```
 
 We are two units to the right of the center. Now take $x=0$:
 
-$$
+```math
 d=0-2=-2.
-$$
+```
 
 We are two units to the left. The sign records the side, while the magnitude 2 records how far away we are. At the center itself, $d=2-2=0$.
 
-We want equal contributions at equal distances to the left and right. The results $2$ and $-2$ still differ. We will remove that difference two steps from now.
+We want points equally far to the left and right to have the same weight. So far, we've got different numbers: $2$ and $-2$. In two steps, squaring will make them match.
 
 ## 4. Second Step: Measure Displacement in Units of Width
 
-Is a displacement of 2 large or small? It is far away for a very narrow spot and nearby for a wide one. We need to compare displacement with width:
+We're two units from the center. That could be far away for a narrow spot or quite close for a wide one. Distance alone isn't enough: we also need to compare it with the spot's width.
 
-$$
+```math
 u=\frac{d}{\sigma}.
-$$
+```
 
-The fraction bar means division. The new letter $u$ represents **displacement measured in units of width**. In our example:
+The fraction bar means division. We'll call the result $u$: we're now measuring **displacement in units of width**. Put in our numbers:
 
-$$
+```math
 u=\frac{2}{2}=1.
-$$
+```
 
 The point is one width to the right of the center. On the left, we obtain $(-2)/2=-1$.
 
 If the point and center stay fixed but we set $\sigma=1$, then $u=2/1=2$: the same point is now two widths from the center. If we set $\sigma=4$, then $u=2/4=0.5$: only half a width away.
 
-The quantities $x,\mu,\sigma$ use the same units. If coordinates are in centimeters, width must also be in centimeters. In “2 cm / 2 cm,” the units cancel and leave the number 1. We call such a number **dimensionless**. This matters: the rest of the formula depends on relative position, not on whether we use centimeters or meters.
+Use the same units for $x,\mu,\sigma$. If the coordinates are in centimeters, the width must be in centimeters too. In “2 cm / 2 cm,” the centimeters cancel, leaving just 1. We call this number **dimensionless**. We've found how many widths separate the point from the center; choosing centimeters or meters doesn't change that answer.
 
-$\sigma$ is a width scale, not the boundary of the spot or its full width. Our bell has no sharp edge at all.
+$\sigma$ sets the width scale. It doesn't measure the spot's full width or mark a boundary: our bell has no sharp edge at all.
 
 ## 5. Third Step: Make the Left and Right Sides Match
 
 Square the relative displacement:
 
-$$
+```math
 q=u^2=u\cdot u.
-$$
+```
 
 The small raised 2 means “multiply the number by itself.” The centered dot means multiplication.
 
 To the right of the center:
 
-$$
+```math
 q=1^2=1\cdot1=1.
-$$
+```
 
 To the left:
 
-$$
+```math
 q=(-1)^2=(-1)\cdot(-1)=1.
-$$
+```
 
 The product of two negative numbers is positive, so both sides produce the same result. At the center, $q=0^2=0$. Two widths away, $q=2^2=4$; three widths away, $q=3^2=9$.
 
-Squaring does two jobs: it removes the side distinction and makes the result grow faster as we move away from the center. But this is still a “measure of separation”: zero at the center, larger farther away. We need a **weight** with the opposite behavior: largest at the center, smaller farther away.
+After squaring, the left and right sides match, and the numbers grow faster as we move away from the center. So far, though, we've got the opposite of what we need: zero at the center, more farther away. Our **weight** should be greatest at the center and get smaller as we move out.
 
-Why square rather than do something else? It is a choice that defines the Gaussian's shape. We could build other symmetric spots, for example using absolute value — magnitude without a sign. They would produce different profiles. Our task is to understand this particular construction, not to prove that every soft shape must be Gaussian.
+We're using a square because we're building a Gaussian. We could use absolute value — magnitude without a sign — and still get a symmetric spot, but its profile would be different. There are plenty of soft shapes; we're working out how to build this particular one.
 
-## 6. Fourth Step: Prepare a Number for Decay
+## 6. Fourth Step: Divide by Two and Add a Minus Sign
 
 Now divide the square by 2 and change its sign:
 
-$$
+```math
 t=-\frac{q}{2}.
-$$
+```
 
-Here, $t$ is an intermediate number, **not time**. Divide first, then apply the minus sign:
+We'll call this step's result $t$. The letter has nothing to do with time here; it's just another short name. Divide first, then apply the minus sign:
 
 - at the center: $q=0$, so $t=-0/2=0$;
 - one width away: $q=1$, so $t=-1/2=-0.5$;
@@ -172,7 +172,7 @@ Here, $t$ is an intermediate number, **not time**. Divide first, then apply the 
 
 As we move farther from the center, the number becomes more negative. The next operation turns that into a smaller **positive** weight.
 
-The divisor 2 controls the rate of decay. It is part of the conventional definition of a Gaussian's scale. We can remove it, but then the same numeric $\sigma$ gives a narrower bell. We will compare the two separately below. That particular divisor is not required for every possible bell-shaped curve.
+The divisor 2 affects how quickly the weight will decrease. It's part of the usual Gaussian formula and sets the relationship between the bell's width and its scale parameter. Remove the two while keeping the same $\sigma$, and the bell gets narrower. Below, we'll compare the plots and calculate the difference. You can still draw a bell without that particular divisor.
 
 ## 7. The Final Step: What exp and the Number e Mean
 
@@ -184,21 +184,21 @@ We have reached $t=-0.5$, but this is not a weight yet. We need an operation whe
 
 The exponential does this:
 
-$$
+```math
 \exp(t)=e^t.
-$$
+```
 
 On the left, “exp” is a function's name and $t$ in parentheses is its input. The right side expresses the same operation as a power. $e$ is a constant, approximately **2.71828**; $t$ is the exponent. “Approximately” means that only the first few digits are shown.
 
-To make this notation concrete, first examine powers of the ordinary number 2.
+An exponent of −0.5 may not look very helpful yet. Let's start with the familiar number 2 and work our way to that notation.
 
 ### Positive, Zero, and Negative Exponents
 
 Positive integer powers are straightforward:
 
-$$
+```math
 2^1=2,\qquad 2^2=2\cdot2=4,\qquad 2^3=2\cdot2\cdot2=8.
-$$
+```
 
 Going from exponent 3 to exponent 2 divides by 2: $8/2=4$. One more step down gives $4/2=2$. Continue the same rule:
 
@@ -213,31 +213,31 @@ Thus $2^0=1$, while $2^{-2}=1/(2\cdot2)=1/4$.
 
 The same rule works for any positive base, including $e$:
 
-$$
+```math
 e^0=1,\qquad e^{-1}=\frac{1}{e},\qquad e^{-2}=\frac{1}{e^2}.
-$$
+```
 
-**A negative exponent does not make the answer negative.** It means taking a reciprocal: one divided by the positive power.
+**A minus sign in the exponent does not make the answer negative.** It tells us to take one and divide it by the result of the positive power. This is called taking the reciprocal.
 
 ### A Half Power
 
 What does an exponent of 0.5 mean? It is half of one: $0.5=1/2$. For a positive number, exponent $1/2$ means the **square root**.
 
-A square root is a nonnegative number that gives the original number when multiplied by itself. For example, $\sqrt{9}=3$, because $3\cdot3=9$. The symbol $\sqrt{\phantom{9}}$ is read as “square root.”
+A square root is a nonnegative number that gives the original number when multiplied by itself. For example, $\sqrt{9}=3$, because $3\cdot3=9$. The symbol **√** is read as “square root.”
 
 Two equal halves of an exponent add up to exponent 1. Thus $e^{1/2}\cdot e^{1/2}=e^1=e$, which means $e^{1/2}=\sqrt{e}$. Now apply the negative-exponent rule:
 
-$$
+```math
 e^{-0.5}=\frac{1}{e^{0.5}}=\frac{1}{\sqrt{e}}.
-$$
+```
 
 Calculate approximately:
 
-$$
+```math
 e\approx2.71828,\qquad
 \sqrt{e}\approx1.64872,\qquad
 \frac{1}{1.64872}\approx0.60653.
-$$
+```
 
 The symbol $\approx$ means “approximately equals.” Python uses a more accurate value of $e$ in the actual calculation, so we round only for display.
 
@@ -245,27 +245,27 @@ Other fractional exponents extend the same idea. For example, exponent $1/4$ giv
 
 ### Where the Particular Number e Comes From
 
-Here is an arithmetic construction that approaches $e$.
+So far, we've treated $e$ as a number we were simply given. Let's approximate it ourselves using a few multiplications.
 
 Start at 1. Increasing it by 100% once gives $1\cdot(1+1)=2$. Now divide the increase into two successive steps of 50% **of the current value**:
 
-$$
+```math
 1\cdot(1+1/2)\cdot(1+1/2)=1\cdot1.5\cdot1.5=2.25.
-$$
+```
 
 The result exceeds 2 because the second step increases 1.5, not the original one.
 
 If we split the process into $n$ equal steps, each step multiplies the current result by $1+1/n$. The letter $n$ is the number of steps, a positive integer. After $n$ multiplications, we obtain:
 
-$$
+```math
 a_n=\left(1+\frac{1}{n}\right)^n.
-$$
+```
 
-The notation $a_n$ names the result for a selected step count; the subscript records which $n$ we used. First divide 1 by $n$, add 1, then multiply the resulting number by itself $n$ times.
+We've named the result $a_n$. The small subscript reminds us which $n$ we chose. Read the operations in order: divide 1 by $n$, add 1, then multiply that result by itself $n$ times.
 
-As $n$ grows, the results approach one number. That limiting number defines $e$. “Limiting” means the value approached by the sequence as the number of steps increases without bound. Any finite $n$ gives an approximation, not an exact equality.
+Increase $n$, and the results get closer and closer to one number: $e$. We call it the limit of this sequence — the value it approaches as the step count increases without end. With any finite $n$, we have only an approximation.
 
-The next cell demonstrates this numerically. In Python, `**` means exponentiation. The `.8f` format displays eight digits after the decimal point; it changes printing only.
+Let's check that in the next cell. In Python, `**` means exponentiation. The `.8f` asks for eight digits after the decimal point when printing; it doesn't change the calculation.
 
 ```python
 import math
@@ -287,7 +287,7 @@ n = 10000 -> 2.71814593
 math.e     -> 2.71828183
 ```
 
-We now have a picture of the number $e$ itself, without introducing derivatives. Using an exponential with this base gives the customary Gaussian notation. Observing that “a spot is soft” does not, by itself, derive $e$, the square, and the factor $1/2$: together, they define the mathematical model we chose.
+We now know where the number $e$ comes from, and so far arithmetic has been enough. An exponential with this base is part of the usual Gaussian formula. But a soft-looking spot alone cannot tell us to use $e$, a square, or the factor $1/2$. We've chosen a specific model for our spot, and we're working through how it behaves.
 
 Check the values we need. In `math.exp(t)`, the `math` module contains mathematical functions and `exp` calculates $e^t$. The loop assigns each of the four listed values to `t` in turn.
 
@@ -306,48 +306,47 @@ exp(-4.5) = 0.011109
 
 Notice that $-4.5$ is far below zero, but $\exp(-4.5)$ is still **positive** — approximately 0.011109. This is 1.1109% of the peak because $0.011109\cdot100=1.1109$.
 
-Percent means “parts per hundred.” Here, it compares a value with the peak of 1. It is not the probability of reaching a point or a fraction of the area under the curve.
+Percent means “parts per hundred.” Here, we've taken the peak weight of 1 as 100% and are comparing the other weights with it. This doesn't measure a probability of reaching a point or a fraction of the area under the curve.
 
 ## 8. Put the Operations into One Formula
 
 Our recipe is:
 
-$$
+```math
 d=x-\mu,\qquad
 u=\frac{d}{\sigma},\qquad
 q=u^2,\qquad
 t=-\frac{q}{2},\qquad
 f(x)=\exp(t).
-$$
+```
 
-Each expression uses the previous step's result. Substituting the intermediate expressions one after another gives:
+At each step, we use the previous result. Now replace the short names with the operations themselves, and the whole sequence fits into one expression:
 
-$$
+```math
 f(x)=\exp\left(-\frac{1}{2}
 \left(\frac{x-\mu}{\sigma}\right)^2\right).
-$$
+```
 
 Multiplying by $1/2$ is the same as dividing by 2. We can expand the squared fraction:
 
-$$
+```math
+\begin{aligned}
 \left(\frac{x-\mu}{\sigma}\right)^2
-=
-\frac{x-\mu}{\sigma}\cdot\frac{x-\mu}{\sigma}
-=
-\frac{(x-\mu)(x-\mu)}{\sigma\cdot\sigma}
-=
-\frac{(x-\mu)^2}{\sigma^2}.
-$$
+&=\frac{x-\mu}{\sigma}\cdot\frac{x-\mu}{\sigma}\\
+&=\frac{(x-\mu)(x-\mu)}{\sigma\cdot\sigma}\\
+&=\frac{(x-\mu)^2}{\sigma^2}.
+\end{aligned}
+```
 
-We multiplied the numerators together and the denominators together. This produces the compact notation:
+Multiply the numerators together, then the denominators together. We can now write the formula more compactly:
 
-$$
+```math
 \boxed{f(x)=\exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)}.
-$$
+```
 
-The squared width in the denominator did not appear from nowhere: it came from squaring the **entire relative displacement**. The parentheses around $x-\mu$ matter: subtract the center first, then square the result.
+Now we can see where the squared width at the bottom came from: we squared the **whole fraction containing the displacement**. Pay attention to the parentheses around $x-\mu$: subtract the center first, then square the result.
 
-The figure below follows the transformation of the whole line; the marked point shows our intermediate numbers.
+The plots below show those same operations. The whole line changes at each step, while the marked point passes through the numbers we just calculated.
 
 ```python
 display(construction_figure(language=LANG))
@@ -357,7 +356,7 @@ display(construction_figure(language=LANG))
 
 ## 9. Complete Calculation: Point 4, Center 2, Width 2
 
-Follow the whole path once more, now without introducing new concepts.
+Let's put the calculation for our point into one table. Every step is already familiar:
 
 | Step | Calculation | Meaning |
 |---|---|---|
@@ -401,31 +400,31 @@ exp(exponent)          = 0.606531
 
 For $x=0$, $\mu=2$, $\sigma=2$:
 
-$$
+```math
 d=0-2=-2,\qquad
 u=-2/2=-1,\qquad
 q=(-1)\cdot(-1)=1,
-$$
+```
 
-$$
+```math
 t=-1/2=-0.5,\qquad
 f(0)=e^{-0.5}\approx0.606531.
-$$
+```
 
-We obtain the same result as on the right. This is symmetry demonstrated with numbers.
+We got the same weight as on the right. The bell looked symmetric in the plot; now the numbers match too.
 
 For $x=2$, exactly at the center:
 
-$$
+```math
 d=2-2=0,\qquad
 u=0/2=0,\qquad
 q=0\cdot0=0,
-$$
+```
 
-$$
+```math
 t=-0/2=0,\qquad
 f(2)=e^0=1.
-$$
+```
 
 With positive width, the same sequence always holds at the center: zero displacement → zero exponent → weight 1.
 
@@ -433,7 +432,7 @@ For $x=6$: $d=6-2=4$, $u=4/2=2$, $q=2\cdot2=4$, $t=-4/2=-2$, so $f(6)=e^{-2}\app
 
 For $x=8$: $d=8-2=6$, $u=6/2=3$, $q=3\cdot3=9$, $t=-9/2=-4.5$, so $f(8)=e^{-4.5}\approx0.011109$.
 
-The next cell repeats the same operations for all five coordinates. There is no new mathematical technique here: the loop simply runs one calculation several times.
+Now let Python go through those steps for all five points. The loop repeats our calculation and collects the results in a table.
 
 ```python
 mu = 2.0
@@ -465,37 +464,37 @@ x    offset  relative  squared  exponent    weight
 
 First, keep $x=4$ and $\mu=2$, but change the width from 2 to 1:
 
-$$
+```math
 d=4-2=2,\quad
 u=2/1=2,\quad
 q=2\cdot2=4,\quad
 t=-4/2=-2,
-$$
+```
 
-$$
+```math
 f(4)=e^{-2}\approx0.135335.
-$$
+```
 
-Previously, it was 0.606531. After narrowing the bell, the same point lies farther away **in units of width**, so its weight decreases. The center still has weight 1.
+The weight went from 0.606531 to 0.135335. We didn't move the point, but narrowing the bell put it farther from the center **in units of width**. Its weight fell, while the weight at the center stayed at 1.
 
 Now return to $\sigma=2$, but temporarily remove the divisor 2 from the exponent. At $x=4$, the relative displacement is 1:
 
 - with the divisor: exponent $-1/2=-0.5$, weight approximately 0.606531;
 - without the divisor: exponent $-1=-1$, weight approximately 0.367879.
 
-Without the divisor, weight decreases faster. This is a different numerical width setting.
+Remove the divisor, and the weight falls off faster. We've effectively narrowed the bell without changing the number in the width setting.
 
 We can obtain the same narrower profile while keeping the usual formula and changing its width. Check with numbers. With the old width 2 and the divisor removed, the denominator is $2^2=4$. In the usual formula, we need a new positive scale $w$ such that:
 
-$$
+```math
 2w^2=4.
-$$
+```
 
 Here, $w$ is just a name for the new width. Divide both sides by 2: $w^2=2$. Therefore $w=\sqrt{2}\approx1.414214$. This is less than 2.
 
 The factor $1/2$ is therefore **part of a scale convention**, not the only possible way to draw a bell. In statistics, the scale $\sigma$ under this convention equals the standard deviation of the corresponding normalized Gaussian. You do not need to calculate statistical deviations from data in this lesson: here, the user supplies $\sigma$.
 
-The figure compares different widths in one formula on the left, and the same width with and without the divisor 2 on the right.
+On the left, we change the width in the same formula. On the right, we keep the width setting and look at what happens when we remove the two.
 
 ```python
 display(width_figure(language=LANG))
@@ -503,42 +502,37 @@ display(width_figure(language=LANG))
 
 ![Figure 3](../../assets/lesson2/en/figure-03.png)
 
-## 11. A Weight Is Neither a Probability nor Opacity
+## 11. What Our Weight Actually Tells Us
 
-We are calculating an **unnormalized Gaussian with a peak of 1**. Here, “unnormalized” means that we did not multiply the curve by an extra factor making its total area equal to one.
+Our Gaussian always has a peak of 1. It's called **unnormalized**: we haven't added a factor to make the area under its graph equal to one. Let's see why that distinction matters.
 
-Imagine the area as the amount of paint beneath the plotted line. Stretch the bell horizontally while keeping its height, and there will be more paint. That is fine for our task: the function supplies a spatial weight rather than distributing a fixed total probability.
+Imagine coloring in the area under the curve. Stretch the bell horizontally and keep its height, and the colored area grows. That's fine for our weight. If we were building a probability density, we'd need to keep that area equal to one; that isn't our task yet.
 
-Therefore:
+Our 0.606531 tells us how strong the influence is at this point relative to the center. We can't read it as “a 60.6531% probability of being at exactly this point.” We haven't calculated the Gaussian's full opacity or the final pixel color either.
 
-- the value 0.606531 expresses relative strength at the selected location;
-- it does not mean “a 60.6531% probability of being at exactly this point”;
-- it is not the Gaussian's full opacity;
-- it does not yet determine the final pixel color.
+Later, we'll add color, an opacity parameter, and blending with neighboring Gaussians. For now, we needed to understand one part: **how influence decreases smoothly as we move away from the center**.
 
-Later, color, an opacity parameter, and blending with other Gaussians will join the spatial weight. Here, we keep one task: **make influence decrease smoothly as we move away from the center**.
+A flashlight's spot helps us picture this. A real flashlight may have a different profile, though: the formula we just unpacked defines the exact shape of our spot.
 
-A flashlight helps us imagine a soft spot, but a real flashlight need not have an exactly Gaussian profile. The analogy explains the idea; the numerical formula defines our model.
+## 12. Zero Width, Negative Coordinates, and the Tails of the Bell
 
-## 12. Where the Formula Works and What Happens at the Edges
+**Use a width greater than zero.** With $\sigma=0$, we would have to divide by zero. The formula is undefined even at the center, where it would require $0/0$. We won't use −2 as a width either. Squaring it would give the same profile as 2, but a negative length isn't useful here. We'll stick to $\sigma>0$.
 
-**Width must be strictly positive.** With $\sigma=0$, we would have to divide by zero. The formula is undefined even at the center, where it would require $0/0$. We do not use −2 as a width: squaring it would give the same profile as 2, but width should not represent a negative length. We therefore adopt the unambiguous rule $\sigma>0$.
-
-**Points on the left are allowed.** A negative coordinate $x$ or negative center $\mu$ is perfectly valid: it is simply a position to the left of zero on our ruler. Do not confuse the sign of a coordinate with the sign of a width.
+**Coordinates can be negative.** If $x$ or the center $\mu$ is below zero, we've simply picked a mark to the left of zero on the ruler. The restriction on the sign of the width doesn't apply to coordinates.
 
 **The weight cannot exceed 1.** A square is nonnegative, so after division and negation the exponent is at most zero. For the positive exponential, exponent zero gives 1 and a negative exponent gives less than 1.
 
-**There is no cutoff at three widths.** At distance $3\sigma$, the weight is $e^{-4.5}\approx0.011109$. At $4\sigma$: relative displacement 4 → square 16 → exponent $-16/2=-8$ → weight $e^{-8}\approx0.000335$.
+**The bell doesn't end at three widths.** At distance $3\sigma$, the weight is $e^{-4.5}\approx0.011109$. At $4\sigma$: relative displacement 4 → square 16 → exponent $-16/2=-8$ → weight $e^{-8}\approx0.000335$.
 
 In exact mathematics, any finite coordinate and positive finite width produce a weight greater than zero. On a computer, an extremely small value can round down to zero because numbers have limited storage precision. That is a computational limit, not a break in the mathematical curve.
 
-Renderers sometimes discard weak tails to save time. But “everything beyond $3\sigma$ can always be ignored” is not a universal rule: significance also depends on opacity, other elements, and the accuracy we want.
+Renderers sometimes discard weak tails to produce images faster. But a distance of $3\sigma$ alone cannot tell us that a contribution is safe to ignore. We also need to consider opacity, neighboring elements, and how accurate we want the image to be.
 
 ## 13. Your Own Function and Experiments
 
-Put the familiar operations into a function. It receives `x`, `mu`, and `sigma` and returns one weight. The check `sigma <= 0` stops the calculation with a clear error when width is invalid.
+Let's put our operations into a function. Pass in `x`, `mu`, and `sigma`, and it returns the weight. The line with `sigma <= 0` checks the width: if it's zero or negative, the function stops and shows an error.
 
-Use ordinary finite numbers; do not enter infinity or special values such as `NaN`. All five intermediate operations remain separate lines so that the formula can be read from top to bottom.
+For these experiments, use ordinary finite numbers, without infinity or special values such as `NaN`. Each of the five operations has its own line, so you can work down the code and compare it with the calculation.
 
 ```python
 def gaussian_weight(x, mu, sigma):
@@ -563,9 +557,9 @@ print(f"weight = {gaussian_weight(x, mu, sigma):.6g}")
 weight = 0.606531
 ```
 
-Before changing each line, write down a prediction:
+Before each change, try to predict the result. Then run the code and compare:
 
-| Change, with the other parameters at their defaults | What to check |
+| Change one value; leave the others at their defaults | What to check |
 |---|---|
 | `x = 0.0` | Does the weight equal the value at 4? Why? |
 | `mu = 4.0` | What weight will the selected point at 4 have? |
@@ -573,9 +567,9 @@ Before changing each line, write down a prediction:
 | `sigma = 4.0` | How far away is the point in units of width now? |
 | `sigma = 0.0` | Why should the function stop rather than produce an image? |
 
-Change one parameter at a time and restore the defaults before the next experiment. Within the slider ranges, enter the same values in the lab at the start of the lesson: the results should match. Values μ = 4 and σ = 4 lie outside this panel’s ranges but are valid inputs to the formula. For these, change the arguments of the first gaussian_figure call in the initial graph cell: for example, mu=4, sigma=2, x=4 or mu=2, sigma=4, x=4.
+Change one parameter at a time and restore the defaults before the next experiment. If the values fit within the slider ranges, set them in the lab at the start of the lesson too. The plot should show the same result. The sliders stop before μ = 4 and σ = 4, although the formula works with those values. For these, change the arguments of the first gaussian_figure call in the initial graph cell: for example, mu=4, sigma=2, x=4 or mu=2, sigma=4, x=4.
 
-The σ = 0 experiment is performed only in gaussian_weight and must raise ValueError. This deliberately tests invalid input; it is not a graph state. Restore sigma=2 afterwards so subsequent runs finish without an error.
+Try zero width only in gaussian_weight. It should respond with ValueError: we are deliberately checking the protection against division by zero. There is no plot for this case. Restore sigma=2 afterwards so subsequent runs finish without an error.
 
 <details>
 <summary>Answers to the parameter experiments</summary>
@@ -598,12 +592,12 @@ The lab may show a small number as `1.523e-8`. Here, the letter `e` is **part of
 
 Read it as “1.523 times ten to the power of minus eight”:
 
-$$
+```math
 1.523\mathrm{e}{-8}
 =1.523\cdot10^{-8}
 =\frac{1.523}{100\,000\,000}
 =0.00000001523.
-$$
+```
 
 We already know how to read negative powers: $10^{-8}$ is one divided by eight tens multiplied together. This format shows a small positive result without a long string of zeros.
 
@@ -611,7 +605,7 @@ In the tables above, `.6f` rounds printed output to six decimal places. A very s
 
 ## 14. Check Your Understanding
 
-First describe your answer in words, then calculate. Use the five-step sequence as your guide rather than trying to memorize results.
+First explain what you expect to see in the plot, then check it with a calculation. If you get stuck, return to the five steps: subtract, divide, square, divide by 2 and negate, then calculate the exponential.
 
 ### Exercise 1. The Same Coordinates in Different Units
 
@@ -639,7 +633,7 @@ For point 4: displacement $4-2=2$, relative displacement $2/2=1$. Without squari
 
 For point 0: displacement $0-2=-2$, relative displacement $-2/2=-1$. Without squaring, the exponent is $-(-1)/2=+0.5$, and the result is $e^{0.5}=\sqrt{e}\approx1.648721$.
 
-Equal distances give different values. On the left, the weight even exceeds 1 and becomes greater than the center's value. We have a different function rather than our symmetric bell. Squaring was an essential part of the construction.
+Equal distances give different values. On the left, the weight even exceeds 1 and becomes greater than the center's value. We've lost our symmetric bell. That's why we needed the square.
 
 </details>
 
@@ -671,13 +665,13 @@ At three widths, relative displacement is 3, its square is 9, the exponent is �
 
 </details>
 
-## 15. What Should Be Clear Now
+## 15. From the Plot to the Calculation and Back
 
-You can take a coordinate and follow the whole path:
+We started with a bell curve and sliders. Now we can take any valid coordinate and work out the weight ourselves:
 
 **subtract the center → divide by width → square → divide by 2 and negate → calculate the exponential.**
 
-You should now be able to explain:
+Return to the first plot and try to connect what it does with the calculation:
 
 - why changing $\mu$ moves the bell;
 - why increasing $\sigma$ widens it while preserving a peak of 1;
@@ -686,7 +680,7 @@ You should now be able to explain:
 - what the exponential, square, and factor $1/2$ do;
 - why a weight is not a probability and why $3\sigma$ is not a sharp boundary.
 
-If one point is still unclear, return to its numerical example and repeat the calculation for another point. Memorizing the compact formula alone is not enough.
+If something is still unclear, take the relevant example and calculate it for a different point. It's easier to see which operation changes the result that way than to memorize the whole formula at once.
 
 In the next lesson, we add a second coordinate: a profile along a line becomes a spot on a plane. We will first see it as an image and a hill, then investigate how to combine two familiar one-dimensional scales.
 
