@@ -71,12 +71,17 @@ Every lesson includes an interactive experiment or runnable example with adjusta
 |---|---|---|
 | 01 | [What Gaussian Splatting Is and What Problem It Solves](lessons/en/lesson-01-en.md) | [Scene exploration notebook](notebooks/en/lesson-01.ipynb) |
 | 02 | [One Gaussian on a Line: Taking Apart the Bell Curve](lessons/en/lesson-02-en.md) | [Graphs and calculations notebook](notebooks/en/lesson-02.ipynb) |
+| 03 | [A Gaussian on a Plane: From a Bell Curve to a Spot](lessons/en/lesson-03-en.md) | [Heatmap, hill, and slices of one spot](notebooks/en/lesson-03.ipynb) |
+| 04 | [Shape and Rotation: Why We Need a Covariance Matrix](lessons/en/lesson-04-en.md) | [Rotate an ellipse and work through its matrix](notebooks/en/lesson-04.ipynb) |
+| 05 | [Several Spots: Color, Opacity, and Overlap](lessons/en/lesson-05-en.md) | [Color blending and a Gaussian editor](notebooks/en/lesson-05.ipynb) |
 
 The notebooks contain the full lessons, code, figures, and interactive exercises. The reading versions preserve the text, code, and static results. GitHub does not run the sliders; open the notebook in Jupyter for the experiments.
 
+The first block takes us from one bell curve to a small image. In the lesson 5 editor, you can add and remove spots, move them, change their sizes, rotation, color, and opacity, and reorder the layers. Save a scene as JSON and load it again: these parameters will be useful when we start adjusting them automatically in block 2.
+
 ### Running the Experiments
 
-Download and extract the entire repository: the notebooks need the shared `course_demos.py` module. The first two lessons require only a CPU and Python 3.11 or newer; no GPU, PyTorch, or external-service accounts. Internet access is needed for the initial dependency installation and optional research links.
+Download and extract the entire repository: the notebooks need the calculation and plotting modules in the course folder. All five lessons in the first block require only a CPU and Python 3.11 or newer; no GPU, PyTorch, or external-service accounts. Internet access is needed for the initial dependency installation and optional research links.
 
 Open a terminal in the course folder. Create a separate environment:
 
@@ -104,7 +109,7 @@ In Jupyter, open `notebooks/en/lesson-01.ipynb`. Select **Kernel → Restart Ker
 
 If you see text such as `VBox(...)` instead of sliders, check that `ipywidgets` is installed in the kernel environment and restart Jupyter. You can also run cells individually with **Shift+Enter**.
 
-Lesson text is edited in the notebooks. Running `python scripts/build_lessons.py` executes all four notebooks and updates the Markdown versions and figures.
+Lesson text is edited in the notebooks. Running `python scripts/build_lessons.py` executes all ten notebooks in the first block and updates the Markdown versions and figures. To rebuild selected lessons, add, for example, `--lessons 3 4 5`. To build one language, add `--languages ru` or `--languages en`.
 
 ---
 

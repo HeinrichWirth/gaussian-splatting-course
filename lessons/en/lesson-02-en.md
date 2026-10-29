@@ -5,7 +5,7 @@ You can read the lesson and see the plots here. To try the sliders, open the not
 
 # Lesson 2 — One Gaussian on a Line: Taking Apart the Bell Curve
 
-[Course outline and setup](../../README.md) · [Previous lesson](lesson-01-en.md) · [Русская версия](../ru/lesson-02.md)
+[Course outline and setup](../../README.md) · [Previous lesson](lesson-01-en.md) · [Русская версия](../ru/lesson-02.md) · [Next: a Gaussian on a plane](lesson-03-en.md)
 
 Let's take one bell curve and see how it works. First, we'll move it around and change its width. Then we'll pick a point and work out, by hand, why it sits at that particular height. Along the way, we'll unpack every operation in the formula.
 

@@ -47,6 +47,8 @@ def github_markdown(text: str) -> str:
             continue
         if not fence and re.search(r"(?<!\\)\\phantom\b", line):
             raise ValueError("GitHub does not allow the phantom macro; use a visible symbol instead")
+        if not fence and re.search(r"(?<!\\)\\operatorname\b", line):
+            raise ValueError("GitHub does not allow the operatorname macro; use mathrm instead")
         if math_lines is not None:
             if stripped.endswith("$$"):
                 remainder = stripped[:-2]
@@ -139,9 +141,9 @@ def export_notebook(notebook, source: Path, target: Path, language: str, number:
     target.write_text("\n\n".join(parts).rstrip() + "\n", encoding="utf-8")
 
 
-def build(execute: bool = True) -> None:
-    for language in ("ru", "en"):
-        for number in (1, 2):
+def build(execute: bool = True, numbers=(1, 2, 3, 4, 5), languages=("ru", "en")) -> None:
+    for language in languages:
+        for number in numbers:
             source = ROOT / "notebooks" / language / f"lesson-{number:02}.ipynb"
             notebook = nbformat.read(source, as_version=4)
             if execute:
@@ -166,4 +168,9 @@ def build(execute: bool = True) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-execute", action="store_true", help="Export existing notebook outputs")
-    build(execute=not parser.parse_args().no_execute)
+    parser.add_argument("--lessons", type=int, nargs="+", choices=range(1, 6),
+                        default=[1, 2, 3, 4, 5], help="Lesson numbers to build (default: all)")
+    parser.add_argument("--languages", nargs="+", choices=["ru", "en"],
+                        default=["ru", "en"], help="Languages to build (default: both)")
+    args = parser.parse_args()
+    build(execute=not args.no_execute, numbers=args.lessons, languages=args.languages)
