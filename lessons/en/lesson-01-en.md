@@ -1,285 +1,298 @@
-# Lesson 1 — What Is Gaussian Splatting and Why Should You Care
+[Open the Jupyter notebook](../../notebooks/en/lesson-01.ipynb)
 
-> **What you'll learn:** why storing the 3D world inside a computer is a problem nobody has properly solved yet, how the attempts evolved, and what the key idea behind Gaussian Splatting is.
+Sliders work in a running Jupyter session. This page preserves the text, code, and static results.
 
----
 
-## Why this matters
+# Lesson 1. What Gaussian Splatting Is and What Problem It Solves
 
-Let's start with an analogy.
-You film a room on your phone. Regular photos from different angles. And then you want to "step inside" that room. Not a panorama. A full 3D scene. Rotate the camera, zoom in on objects, peek around corners where possible.
+[Course plan](../../README.md) · [Русский](../ru/lesson-01.md) · [Next lesson: one Gaussian on a line](lesson-02-en.md)
 
-Gaussian Splatting does this. In real time.
+You photograph an object from several sides. Now you want to see it from a position where the camera **never stood**. How could you produce that image?
 
-Pretty quickly it went beyond being an academic toy. Novel view synthesis already works in production: virtual real estate tours, AR/VR content, museum visits. Any task where you need to "be" in a place that only exists as photographs — is a candidate.
+In this lesson, we first explore a small scene and look inside its representation. Then we follow the path from photographs to a result. By the end, you will be able to explain:
 
-But here's the general question: **how do you represent a three-dimensional world in computer memory so it can be quickly and beautifully shown from any viewpoint?**
+- how a photograph differs from a scene representation;
+- what one Gaussian stores and why a scene needs many of them;
+- how training differs from viewing a finished model;
+- why a new viewpoint does not imply knowledge of an unseen side of an object.
 
-That question is central to this entire course.
+You do not need matrices or derivatives yet. First, we need observations. The mathematical breakdown of one soft spot begins in lesson 2.
 
----
+## 1. Look first
 
-## The problem: how to "record" the 3D world
+Below is a **synthetic teaching scene**: a colored sphere above a plane. It contains 192 Gaussians: 128 on the sphere and 64 on the plane. Their positions, shapes, and colors are specified by the program. This scene **was not trained from photographs**.
 
-You photograph a cup — you get a grid of pixels. Two-dimensional. All the tools for 2D have been polished for years: load, process, display.
+These first experiments use an orthographic camera: parallel projection directions let us examine shape without distant objects becoming smaller through perspective. This is a simplified teaching viewer; perspective cameras and full rendering come later. Overlap order is determined by center depth, so this approximation can give incorrect results for complex intersections.
 
-With 3D, things aren't that simple.
+If you are reading on GitHub, the static figures already show the main states. To use the sliders, open this notebook in Jupyter using the [setup instructions](../../README.md), then run the cells in order. **Run All** runs every cell. The first block finds the course folder and imports the visualization tools; you do not need to study its implementation yet.
 
-You have the real world — continuous, infinitely detailed, dependent on lighting and viewing angle. You need to store it as a finite set of numbers. Requirements:
+```python
+%matplotlib inline
+from pathlib import Path
+import sys
+from IPython.display import display
 
-1. **Storage** — reasonable (not terabytes per room)
-2. **Rendering** — fast (30+ fps for VR/AR)
-3. **Quality** — decent (not "a game from 2005")
-4. **Learning from photos** — automatic (not manual work by a 3D artist)
+course_root = next(
+    (folder for folder in [Path.cwd(), *Path.cwd().parents]
+     if (folder / "course_demos.py").is_file()),
+    None,
+)
+if course_root is None:
+    raise FileNotFoundError(
+        "Open this notebook from inside the downloaded course folder."
+    )
+if str(course_root) not in sys.path:
+    sys.path.insert(0, str(course_root))
 
-No single approach wins on all four at once. But Gaussian Splatting got closer than anything else.
+from course_demos import scene_overview, scene_lab, coverage_figure, pipeline_figure
+LANG = "en"
+```
 
----
+```python
+display(scene_overview(language=LANG))
+```
 
-## Evolution: how we got to Gaussian Splatting
+![Figure 1](../../assets/lesson1/en/figure-01.png)
 
-Let's walk through the main approaches for a general understanding. Maybe all this Gaussian Splatting stuff is pointless and there's no reason to study it at all.
+The three images show **the same data from the same viewpoint**:
 
-![mesh_cloud_voxel](../../assets/lesson1/mesh_cloud_voxel.png)
+| Mode | What is shown | What to look for |
+|---|---|---|
+| **Centers** | Only the position of each Gaussian | Gaps remain between individual points. Their extent and softness are not displayed yet. |
+| **Contours** | A line at a selected influence level for each Gaussian | Size and orientation become visible. This is not a hard boundary: influence continues beyond the line. |
+| **Composite image** | Soft colored footprints with overlap | Several elements together produce a more continuous image. |
 
-### Polygonal meshes
+In this viewer, a contour follows the locations where a spot's weight is approximately **61% of its weight at the center**. The same level is used for every Gaussian so that their shapes can be compared. We will explain what this weight means and how to calculate it in the next lesson.
 
-The oldest method. Describe an object as a set of triangles. Each triangle — three vertices, a normal, a texture. The entire world of video games and cinema runs on this.
+The centers do not disappear from the model when you switch to the composite. Only the way we display the same collection of numbers changes.
 
-**Pros:**
-- GPUs are built for triangle rasterization — rendering is instant
-- Huge ecosystem (Blender, Maya, Unreal)
-- Clear structure: vertices, edges, faces
+```python
+display(scene_lab(language=LANG))
+```
 
-**Cons:**
-- Creation means manual work or expensive scanners
-- Automatic reconstruction from photos produces rough, noisy meshes
+## 2. Five experiments before the explanation
 
-Meshes work when a model is created by an artist and you need object interaction like in games. We want **automatic** reconstruction from photographs. And that's where problems start. Try automatically reconstructing a mesh of a lace curtain from five photos. You'll get a holey bedsheet with triangles sticking out everywhere. Beautiful. Neural networks are getting decent at this, but photorealism is still far away.
+Predict what will happen first. Then change a control and compare the result with your expectation.
 
-### Voxels
+1. **Switch between the three modes while keeping the viewpoint.** Find a part of the plane with visible gaps in Centers mode. Inspect it in Composite image mode. The footprints do not add new centers; they distribute influence around the existing ones.
+2. **Change Camera orbit and View elevation.** The first slider moves the camera around the scene; the second changes whether you look from above or from the side. The plane looks wide from one direction and narrow from another. The image changes while the scene stays the same.
+3. **Select one Gaussian by its index and enable isolation.** An index is simply an element's number in a list. It does not inherently mean “chair,” “wall,” or “sphere.” Inspect the selected element in Contours mode and then in Composite image mode.
+4. **Change the selected Gaussian's opacity.** In Composite image mode, compare 0, about 0.5, and 1. At zero, its color contribution disappears. Increasing the value makes it influence the image more strongly. Its center marker remains in Centers mode: that marker shows an element in the data, not its visible contribution.
+5. **Disable isolation and reset the scene.** A change to one element may be hard to notice among the others. Reset restores the initial parameters and view so you can repeat the comparison.
 
-A 3D scene as a LEGO set. Split the space into identical cubes and for each one record: is there something here or is it empty, what color, what density. Minecraft is the most vivid and familiar example of this representation.
+**The important observation:** moving the camera does not create a new scene from scratch. The program computes another view of the same elements. No training takes place in this experiment.
 
-**Pros:**
-- Conceptually simple: a 3D array of values
-- Naturally processed by 3D convolutional networks
-- No topology needed
+## 3. What problem are we solving?
 
-**Cons:**
-- Memory grows cubically: 512³ = 134 million voxels
-- Details require high resolution → even more memory
-- Not for photorealism tasks. A very rough object representation.
+A photograph is a flat grid of colored pixels. A pixel gives a color at one location **in that image**. It does not contain a ready-made answer to what a camera would see after moving one step to the left.
 
-Voxels are like painting a picture with a palette knife. You'll capture general shapes. Fine details will require an unbearable number of strokes. Want to double the resolution along each axis — enjoy ×8 memory. Want to render a room with books on a shelf and a pattern on the carpet — you'll hit the GPU memory ceiling before you even start training.
+A **scene representation** stores data from which images can be computed for different cameras. **Rendering** is the computation of an image from those data and a chosen camera. **Novel-view synthesis** means producing an image from a camera position absent from the input photographs.
 
-### Point Clouds
+Imagine a mug on a table. In a front photograph, its handle appears on the right. After walking around the table, the handle may appear on the left or become hidden behind the body. Simply stretching the original photograph does not tell us how overlaps should change or what was behind the object.
 
-The most "honest" 3D representation. A scanner or an algorithm (COLMAP, LiDAR) gives you millions of points with coordinates and color. No triangles, no topology — just a scatter of points in space.
+Gaussian Splatting stores a scene as a collection of adjustable Gaussians. A renderer combines them into an image from a chosen viewpoint. During reconstruction, their parameters are fitted so that views from the input cameras resemble the input photographs.
 
-**Pros:**
-- Comes directly from real sensors like LiDAR and SfM pipelines. Pure math.
-- No artificial topology — what you see is what you get
-- Scales easily: more points = more detail. Relatively lightweight scenes even with millions of points.
-- Convenient representation for technical tasks where accuracy matters (LiDAR). Millimeter precision.
+However, “resembles the photographs” and “an exact model of the entire physical scene” are different requirements. Keep that distinction in mind: it will explain the limitations discussed in the section on unseen sides.
 
-**Cons:**
-- Holes. Between points — nothing
-- No surface: a point doesn't know which object it belongs to
+## 4. What does one Gaussian store?
 
-The last downside is key for us. A point cloud is a great starting position (and 3DGS literally starts from one), but on its own it doesn't produce a smooth photorealistic render. Each point is an infinitely small thing with no size, shape, or transparency.
+A useful first analogy is a soft spot of paint: it has a location, size, color, and contribution strength. In 3D, it is a spatial distribution of influence that produces a footprint on the screen when projected. It is **not a drop of liquid or a hard shell**: the analogy helps us imagine softness, but does not define a physical material.
 
-But what if you **gave each point a size, shape, color, and transparency**? What if instead of a point you placed a small semi-transparent ellipse that can be rotated, stretched, and recolored? Remember this thought — we'll come back to it in a couple of minutes.
+Let us examine four groups of properties. The Sphere and Plane labels in the selected-element card are assigned manually by the teaching scene’s author. They do not mean that an algorithm recognized these objects.
 
-### NeRF (Neural Radiance Fields)
+The numbers below are separate simple examples, not the values of the currently selected element in the viewer.
 
-In 2020, NeRF flipped the understanding of what you can extract from a few photographs. The idea is elegant: **the scene is a neural network**. Feed in a point coordinate (x, y, z) and a viewing direction — get color and density.
+### Position: where the center is
 
-Rendering: cast rays from the camera through each pixel, query the network at hundreds of points along the ray, combine the results. You get a photograph.
+A plane needs two coordinates; space needs three. For example, position **(0, 0, 1)** in our experiment's coordinate system means zero displacement along both directions of the plane and a height of 1 above it. Here, the vertical direction is called **z**. Other programs may use different axis conventions. The coordinate unit here is arbitrary; it does not necessarily represent a meter.
 
-**Pros:**
-- Stunning quality on complex scenes
-- Compact representation (weights of a single MLP)
-- Learns from photographs + camera positions
+The center is where the Gaussian has its greatest weight. Changing the position moves the entire distribution with it.
 
-**Cons:**
-- Rendering is painfully slow: for a single pixel — dozens to hundreds of forward passes through an MLP
-- Training takes hours
-- The representation is **implicit**: you can't "touch" the scene
+### Shape: how widely influence spreads, and in which directions
 
-The last point is key. NeRF stores the scene as a black box. A neural network that answers the question "what color is here?". You can't look at the scene's structure, move an object, delete something. Everything is baked into the weights. Want to remove a chair from the room? Good luck — retrain the network from scratch.
+Compare a small ball with a flattened balloon. The latter can spread influence widely along a surface and narrowly across it. Rotation changes the directions of elongation.
 
-### What about water, hair, cloth?
+For example, scales **(0.2, 0.2, 0.2)** specify equal scale along three local directions. Increasing the first to **0.4** makes the distribution wider in that direction. These numbers do not define a hard outer boundary: influence fades gradually rather than stopping abruptly.
 
-The industry has a whole zoo for that. Each of these approaches is a separate field with its own research. We won't dwell on them here.
+Lesson 2 explains the meaning of one scale on a line. We then build a shape on a plane before returning to the spatial case.
 
-### Summary
+### Color: what the element contributes
 
-Meshes are fast but don't learn from photos. Voxels are simple but devour memory. Point clouds are a great raw foundation but have no surface. NeRF learns wonderfully but renders slowly and is opaque. Specialized methods solve narrow tasks.
+Our simple example uses three **RGB** components: red, green, and blue. With values from 0 to 1, **(1, 0, 0)** is red, **(0, 1, 0)** is green, and **(1, 1, 1)** is white.
 
-We need an approach that takes the best of each: **learns from photos** (like NeRF), **renders in real time** (like mesh rasterization), and provides an **explicit representation** (like a point cloud — you can touch, move, delete things).
+Each element in our teaching scene has a constant color. In full 3DGS, color can depend on viewing direction, helping represent changes in visible color when moving around shiny objects. We will examine that color representation separately in lesson 15.
 
-Such an approach exists. And it starts with the idea we already mentioned: take a point cloud and turn each point into a small, controllable, semi-transparent ellipsoid.
+### Opacity: how strongly the element affects the image
 
-### Gaussian Splatting: when someone finally figured it out
+The opacity parameter lies between **0 and 1**. At 0, the element makes no color contribution; larger values give it a stronger contribution.
 
-2023. The paper by Kerbl et al. comes out — *"3D Gaussian Splatting for Real-Time Radiance Field Rendering"*. The idea:
+Importantly, **a value of 1 does not turn the entire footprint into an opaque plate**. Influence varies across the footprint: stronger near the center, weaker farther away. The result also depends on other elements and their overlap order.
 
-**The scene is not a neural network. The scene is a cloud of gaussians.**
+We call this parameter **opacity**, because increasing it strengthens the contribution. Calling it transparency would reverse the meaning of the control.
 
-Each gaussian is an explicit object with specific parameters. You can take any one of them, see where it is, how big it is, what shape, what color. Move it. Delete it. Add a new one.
+## 5. Why use many elements?
 
-Imagine painting a picture — but instead of brushstrokes you use small colored clouds. Each cloud:
+One Gaussian makes a soft contribution. Several well-placed elements can jointly describe a color transition, an edge, or a surface region. In our scene, the sphere consists of many elements, but no individual element inherently knows that it is “part of a sphere.”
 
-- Has a **center** — a point in space
-- Has a **shape** — an elongated, flat, or round blob
-- Has a **color** — any
-- Has a **transparency** — from fully opaque to nearly invisible
+Compare these two statements:
 
-You throw thousands of these clouds into space, and they overlap, mix, form objects. From far away — a photorealistic scene.
+- **“We added more elements.”** The model now has more adjustable parameters for describing an image.
+- **“The image became more accurate.”** That requires suitable placement and adjustment of those parameters, sufficient observations, and a working training procedure.
 
-That's Gaussian Splatting. Each cloud is a **gaussian**.
+The first does not guarantee the second. A million randomly placed Gaussians do not automatically become an accurate room. There is no fixed count above which every scene becomes photorealistic.
 
-Why "gaussian"? Because the intensity fades from center to edges following a Gaussian curve — that same "bell" from probability theory. Maximum at the center. Smooth fade to nothing at the edges. No sharp boundaries. The result looks smooth — gaussians blend into each other like watercolor spots.
+Isolate one element, then restore the whole scene. This experiment demonstrates their combined contribution. It does **not yet demonstrate** how training finds the necessary positions and shapes: that is the subject of the next course block.
 
----
+## 6. From photographs to a finished model
 
-## Anatomy of a single gaussian
+Our viewer starts with predefined parameters. Reconstructing a real scene requires finding them. For a basic photographic workflow, it helps to distinguish the following stages.
 
-Four properties. Pure intuition for now.
+```python
+display(pipeline_figure(language=LANG))
+```
 
-### Position (μ) — "Where am I?"
+![Figure 2](../../assets/lesson1/en/figure-02.png)
 
-A point in 3D: three numbers (x, y, z). The center of the cloud — the point of maximum density.
+| Stage | Input | Result |
+|---|---|---|
+| **Capture** | A static scene and a camera | Overlapping photographs from different positions |
+| **Camera and point reconstruction** | Photographs containing shared visible details | Estimated camera parameters and a sparse point cloud; COLMAP is often used for this |
+| **Gaussian initialization** | Initial points and associated information | An initial collection of Gaussians |
+| **Training** | Gaussians, cameras, and input images | Parameters whose rendered images agree more closely with the photographs |
+| **Viewing** | A saved model and a chosen camera | An image from the requested viewpoint |
 
-The scene as a point cloud — gaussian positions are those points. The difference: each point isn't infinitely small, but "smeared" around its center. This is exactly how Gaussian Splatting initializes: it takes a point cloud from photogrammetry (COLMAP) and "fits" a gaussian onto each one. Dimensionless points become volumetric clouds.
+Camera positions are also estimated; they are not magically known. Errors in camera reconstruction can hinder subsequent training.
 
-### Shape (Σ) — "What do I look like?"
+### What happens during training?
 
-Covariance matrix. Don't be scared by the name — we'll break it down in lesson 2. For now the key thing: this thing defines the **size** and **orientation** of a gaussian.
+Consider one input photograph. We place a virtual camera at its corresponding position and render the current model. We compare the result with the photograph: where does the color match, where is the object misplaced, and where is detail missing?
 
-Imagine a balloon:
-- Inflate evenly → **sphere**
-- Squeeze from the sides → **elongated ellipsoid** (like a melon)
-- Rotate the melon at an angle → **oriented ellipsoid**
+The algorithm then changes parameters to reduce a chosen error measure. Another viewpoint is selected, and the comparison repeats. Basic 3DGS also adds and removes Gaussians during training. Changing their count and adjusting their parameters are related but distinct operations.
 
-The covariance matrix encodes exactly this: stretch-compress along each axis plus rotation. One compact 3×3 matrix — and the gaussian takes any ellipsoidal shape.
+For now, understand **what is compared and what is changed**. In lessons 6–9, we will measure error ourselves and work through an update numerically. Full 3D training and changes to the element count appear in lessons 16–17.
 
-This is more powerful than just a "radius". Gaussians flatten along a table surface (flat disks), stretch along a wall edge (cigar-shaped), or stay round (spheres). This flexibility allows describing the geometry of anything — from smooth walls to a shaggy carpet.
+### Training and viewing are different jobs
 
-Looking ahead: in practice, the covariance matrix isn't stored as-is. It's decomposed into **rotation** (R) and **scale** (S): Σ = R·S·Sᵀ·Rᵀ. This guarantees physical correctness. But that's lesson 2 material — for now it's enough to understand: shape = size + orientation.
+Training requires input images and repeated comparisons. When viewing a saved model, the renderer computes each frame using parameters that have already been found. Training time and viewing speed must therefore be evaluated separately.
 
-### Color (c) — "What color am I?"
+The [original 3DGS project's results](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) show real reconstructions and comparisons with reference images. This is a separate example of the method in use; our local sphere and plane remain a manually specified teaching scene.
 
-Three numbers — RGB.
+**Optional experiment with a real reconstruction (internet required).** Open Visual Comparisons on the project page. Compare Ours and Ground Truth for the same viewpoint. Identify one matching detail and one visible difference: an edge, a fine texture, or a highlight. Ground Truth is a reference image for comparison; do not assume that this particular frame was used for training. This supplements the local exercises and is not required to complete the lesson.
 
-A nuance: in full GS, color depends on the viewing angle. A shiny sphere changes its tint as you walk around it — the highlight shifts. For this, **spherical harmonics (SH)** are used — functions that encode how color depends on direction. We'll cover this in lesson 7. For now, just consider: each gaussian has a color.
+## 7. A new viewpoint and an unseen side are different things
 
-### Transparency (α) — "How visible am I?"
+Look at the top-down diagram. Cameras observe an object from different directions. The diagram illustrates visibility only: it **does not simulate training or demonstrate reconstruction quality**.
 
-A number from 0 to 1. Zero — invisible. One — fully opaque.
+```python
+display(coverage_figure(language=LANG))
+```
 
-Why? Gaussians **overlap**. A viewing ray passes through several of them, and the final pixel color is their combination. Opaque ones block what's behind them. Semi-transparent ones let light pass through.
+![Figure 3](../../assets/lesson1/en/figure-03.png)
 
-A stack of colored glass: look through it — you see a mixed color. Each glass is partially transparent, the result depends on the order and transparency of each layer. This is **alpha compositing**. Details — in lesson 3.
+There are three situations:
 
----
+1. **A region is visible to camera A.** Image A contains an observation of that region.
+2. **A region is hidden from A but visible to camera B.** One photograph lacks information that another may supply.
+3. **A region is hidden from both cameras.** These observations contain no direct evidence of its appearance.
 
-## From one to a million: scale is everything
+A concrete example: two boxes have identical fronts. The first has a red back; the second has a blue back. If all photographs show only the front and never reveal the back through a reflection, those photographs alone do not tell us its color.
 
-A single gaussian is a blurry spot. But if...
+An algorithm may still produce a result, but that is not yet a verified recovery of the hidden side. Checking it requires additional observations or assumptions that supply information from elsewhere.
 
-**~100 gaussians** — rough outlines. "There's probably a table here, and a wall there," but everything looks foggy. Impressionism: the mood is there, details aren't.
+This does not mean every novel view is poor. A new viewpoint can reveal a surface that was already well observed in other photographs. Problems arise when observations are insufficient or inconsistent.
 
-**~1,000** — shapes become recognizable. Contours are readable, colors are in place. Fine details — still blurry spots.
+Our manually specified sphere is known to the program on every side. Freely orbiting it therefore **does not prove** that the method has learned to recover surfaces that were never photographed.
 
-**~100,000** — almost a photograph. Wood texture, glass highlights, fabric folds. The working range for real scenes.
+## 8. How does this differ from other representations?
 
-**1,000,000+** — photorealism. This is how many the original implementation uses for complex scenes: interiors, streets, architecture.
+We can now connect the comparison to a familiar question: **what is stored, and how does it become an image?**
 
-Important — even with a million gaussians, rendering works in real time. Each gaussian is not a neural network call but a simple operation: project the ellipsoid onto the screen, draw it. Modern GPUs do this in real time.
+| Representation | What it stores | What to remember |
+|---|---|---|
+| **Polygon mesh** | Vertices and faces, usually with materials or textures | Useful for explicit surfaces, editing, and interaction. It can be created by an artist or reconstructed from images. |
+| **Voxels** | Values in cells of a three-dimensional grid | A straightforward way to store spatial data. A dense grid grows quickly as resolution increases; sparse representations also exist. |
+| **Point cloud** | Point coordinates and possibly color or other attributes | Useful for measurements and initial geometric information. How points are displayed is a separate choice. |
+| **NeRF and related methods** | In the original NeRF, density depends on position; color also depends on viewing direction | The original NeRF uses a neural network; other methods change the representation and computation. Speed depends on the particular method and implementation. |
+| **Gaussian Splatting** | A collection of Gaussians with adjustable parameters | Explicit elements are projected and blended. Individual elements can be inspected, but their connection to an entire object is not assigned automatically. |
 
-One more thing: gaussians are **adaptive in density**. In complex areas (fine details, textures) — many small ones. In simple areas (solid-color wall, sky) — few large ones. The model learns to distribute resources on its own. The adaptive density control mechanism — lesson 4.
+Each row has variants and limitations. For example, [Instant-NGP](https://nvlabs.github.io/instant-ngp/) demonstrates why “every NeRF is always slow” is not a suitable description of the whole family.
 
----
+The original 3DGS work demonstrated high quality and fast rendering in its experiments. That does not promise identical quality or frame rates on every computer and scene. Data, implementation, image resolution, and the amount of work per frame all affect the result.
 
-## Why faster than NeRF: explicit vs. implicit
+For this course, the central benefit of an explicit collection of Gaussians is that we can **inspect the elements and connect parameter changes to the image**. We will use that throughout our learning.
 
-**NeRF** stores the scene **implicitly** — as a neural network. Want to know the color of a point? Run the coordinates through an MLP. One pixel? A hundred points along the ray, each through the MLP. An image at 1920×1080? Repeat millions of times. For **one frame**. What amazing efficiency.
+## 9. Check your understanding
 
-**Gaussian Splatting** stores the scene **explicitly** — a set of objects with parameters. Rendering:
+Answer in your own words first, then open the explanation. If the result differs from your expectation, revisit the relevant experiment.
 
-1. Take a gaussian
-2. Project it onto the screen (a matrix operation)
-3. Draw a semi-transparent ellipse
-4. Blend overlapping ones
+### Exercise 1. What did the switch change?
 
-This is **rasterization**, not ray marching. GPUs can rasterize billions of primitives per second. That's literally what they were built for.
+You switch from Centers to Composite image without moving the camera. Fewer gaps are visible in the image. Were new points added to the data?
 
-Numbers: NeRF renders a frame in seconds to minutes. Gaussian Splatting — **100+ fps** at the same quality. The difference between a slideshow and reality.
+<details>
+<summary>Worked answer</summary>
 
-### Comparison of approaches
+No. The same collection of 192 elements is used. Centers mode shows only each element's position. In Composite image mode, the renderer also uses shape, color, and opacity, so contributions spread around their centers and overlap. The display of the data changed, not the number of elements.
 
-| | Meshes | Voxels | Point Cloud | NeRF | Gaussian Splatting |
-|---|---|---|---|---|---|
-| **Representation** | Triangles | 3D grid | Points (x, y, z) | Neural network (implicit) | Gaussians (explicit) |
-| **Rendering** | Instant | Medium | Full of holes | Very slow | Instant |
-| **Quality** | Depends on model | Limited by resolution | Low without processing | High | High |
-| **Learning from photos** | Poor | Poor | Good (SfM) | Excellent | Excellent |
-| **Editability** | Excellent | Good | Good | Poor | Good |
-| **Memory** | Moderate | A lot (cubically) | Moderate | Low | A lot |
-| **Water, hair, cloth** | Specialized methods | No | No | Learns appearance, not physics | Open problem |
+</details>
 
-No approach is perfect. But Gaussian Splatting was the first to combine **NeRF-level quality** with **rasterization speed**, while keeping an **explicit representation** — every gaussian can be touched, moved, deleted. This combination is what made it the breakthrough of 2023.
+### Exercise 2. Why does an element not disappear in every mode?
 
----
+Isolate one Gaussian and set its opacity to 0. Its color contribution disappears in Composite image mode. Why can Centers mode still show its point?
 
-## How it trains: the big picture
+<details>
+<summary>Worked answer</summary>
 
-We'll go into detail in lesson 4. But the general idea is needed now — it explains why this even works.
+Opacity controls the contribution to the image. It does not delete the element's entry from the list. Centers mode is a diagnostic view of the data: it can display the position of an element even when that element contributes nothing. Removing its entry would require a separate deletion operation.
 
-You have 50 photographs of a room from known viewpoints. You want a set of gaussians that, when rendered from those viewpoints, produce **the exact same photographs**.
+</details>
 
-The process:
+### Exercise 3. Are front photographs enough?
 
-1. **Initialization.** An initial point cloud (from COLMAP or random). Each point gets a gaussian with random parameters.
-2. **Rendering.** Pick a training viewpoint, render the scene.
-3. **Comparison.** Loss — how much the render differs from the real photograph.
-4. **Update.** Gradient descent adjusts the parameters: positions, shapes, colors, opacities.
-5. **Repeat** thousands of times until renders become indistinguishable from photographs.
+Every photograph shows only the front of a box. The resulting model shows a blue back. Can we consider that color reliably recovered?
 
-The entire process is **differentiable**. That's the key word. The gradient of the loss with respect to every parameter of every gaussian → update via PyTorch autograd. No manual tuning. The model learns on its own.
+<details>
+<summary>Worked answer</summary>
 
-And one more thing: during training, the model doesn't just move existing gaussians. It **creates new ones** (where details are missing) and **deletes unnecessary ones** (too transparent, too large). The mechanism is **adaptive density control**. It's critical for quality. Lesson 4.
+No, if the back was never observed and no additional information about it is available. Red and blue backs could have produced the same input images. We need an observation from behind or an explicitly stated assumption about the color. The renderer's ability to display a back does not establish that the result is correct.
 
----
+</details>
 
-## Pitfalls
+### Exercise 4. What is needed for the next frame?
 
-Before you rush to implement — some warnings. We'll return to each in later lessons. But you should know from day one.
+The model has already been trained and saved. You rotate the camera slightly. Must all Gaussians be fitted to the input photographs again?
 
-- **Memory.** A million gaussians × (position + shape + color + transparency) = gigabytes per scene. Significantly more than MLP weights in NeRF. Compression is an active research area. And a topic I'm working on right now.
+<details>
+<summary>Worked answer</summary>
 
-- **Floaters.** The camera looks somewhere that wasn't in the training photos — artifacts appear, "ghosts." Meaningless semi-transparent blobs floating in mid-air. The model didn't know what was there and filled the void with garbage. Looks like an LLM hallucination, but in 3D.
+Not during ordinary viewing. The renderer takes the saved parameters and the new camera and computes an image. It is a new frame, not a new training procedure. If the model poorly describes the requested view, rotating the camera does not by itself fix its parameters.
 
-- **Initialization.** GS usually starts from a point cloud generated by COLMAP (Structure from Motion). The quality of the initial cloud is critical. Few photos → few starting points → poor foundation. Garbage in — garbage out. A classic. This problem is also being solved, and there are works that can produce good results from a small number of cameras.
+</details>
 
-- **Dynamics.** The base method is designed for static scenes. For video, extensions are needed — 4D gaussians. Lessons 10–13.
+### Exercise 5. Are more elements always better?
 
----
+A thousand random Gaussians are added to a model. Does it necessarily reproduce the input photographs more accurately now?
 
-## Summary
+<details>
+<summary>Worked answer</summary>
 
-- **3D scene representation** is a fundamental CV task. Meshes, voxels, NeRF, point clouds — each has its strengths and weaknesses.
+No. The new elements provide extra parameters, but those parameters need suitable values. Random positions and colors can make the image worse and increase rendering cost. Improvement must be checked against observations, including viewpoints held out for evaluation.
 
-- **Gaussian Splatting** represents a scene as a cloud of thousands to millions of gaussians — explicit "blurry drops of paint" in 3D.
+</details>
 
-- Each gaussian: **position** (μ), **shape** (Σ), **color** (c), **transparency** (α).
+## 10. What to take away
 
-- An **explicit representation** is fundamentally faster than an **implicit** one — rendering comes down to rasterization, not millions of forward passes.
+- A **scene model** stores parameters. A **renderer** turns them into an image for a chosen camera.
+- A Gaussian has a position, shape, color, and opacity. Its soft contribution spreads around its center.
+- The same elements can be displayed as centers, contours, or a composite. A contour is not a hard boundary.
+- Reconstruction fits parameters to observations. Viewing uses the model that has already been found.
+- Observations from other viewpoints can reveal hidden regions. A surface absent from every observation may have no reliably determined answer.
 
-- Quality on par with NeRF at **100+ fps**. A breakthrough that paved the way for real-time novel view synthesis.
+We now have a concrete question: **how can we describe influence fading away from a center using numbers?** In [lesson 2](lesson-02-en.md), we start on a line, build a bell curve one operation at a time, and calculate its value at a selected point by hand.
 
----
+## Sources and additional examples
 
-Now you know **what** a gaussian is and **why** Gaussian Splatting matters. In lesson 2 — we'll break down the math: where the "bell" comes from, what the covariance matrix encodes, and you'll create your first gaussian by hand. With actual numbers.
+- [Kerbl et al. — 3D Gaussian Splatting for Real-Time Radiance Field Rendering](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/): the original work, video, and result comparisons.
+- [COLMAP — Tutorial](https://colmap.github.io/tutorial.html): reconstructing cameras and structure from images, with capture recommendations.
+- [Mildenhall et al. — NeRF](https://www.matthewtancik.com/nerf): the original neural radiance field representation.
+- [Müller et al. — Instant-NGP](https://nvlabs.github.io/instant-ngp/): an example of how changes to representation and implementation accelerate neural graphics methods.

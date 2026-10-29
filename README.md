@@ -9,7 +9,7 @@
 **[🇷🇺 Русский](README_ru.md)**
 
 ## What This Is
-Gaussian Splatting is a way to turn regular photographs into a 3D scene you can view from any angle. In real time. A 2023 technology. Used in VR/AR, film, cartography, digital twins.
+Gaussian Splatting reconstructs a representation of a 3D scene from photographs and produces images from new viewpoints. Quality depends on the observations; surfaces absent from every input photo cannot be reliably recovered. The 2023 3DGS method enabled high-quality real-time rendering of such scenes on suitable hardware.
 
 This course explains how it works. From the inside. From the math of a single element to running it on a GPU.
 
@@ -67,10 +67,44 @@ Every lesson includes an interactive experiment or runnable example with adjusta
 
 ## Available Materials
 
-- [What Is Gaussian Splatting and Why Does It Matter?](lessons/en/lesson-01-en.md)
-- [The Math Behind a Gaussian: Breaking It Down Piece by Piece](lessons/en/lesson-02-en.md)
+| Lesson | Read on GitHub | Practice in Jupyter |
+|---|---|---|
+| 01 | [What Gaussian Splatting Is and What Problem It Solves](lessons/en/lesson-01-en.md) | [Scene exploration notebook](notebooks/en/lesson-01.ipynb) |
+| 02 | [One Gaussian on a Line: Taking Apart the Bell Curve](lessons/en/lesson-02-en.md) | [Graphs and calculations notebook](notebooks/en/lesson-02.ipynb) |
 
-These lessons belong to the first version of the course. Their content will gradually be adapted to the curriculum below: the introduction to lesson 01, and Gaussian math mainly to lessons 02–04 and 12. Existing filenames still use the first version's numbering.
+The notebooks contain the full lessons, code, figures, and interactive exercises. The reading versions preserve the text, code, and static results. GitHub does not run the sliders; open the notebook in Jupyter for the experiments.
+
+### Running the Experiments
+
+Download and extract the entire repository: the notebooks need the shared `course_demos.py` module. The first two lessons require only a CPU and Python 3.11 or newer; no GPU, PyTorch, or external-service accounts. Internet access is needed for the initial dependency installation and optional research links.
+
+Open a terminal in the course folder. Create a separate environment:
+
+```text
+python -m venv .venv
+```
+
+In Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m jupyterlab
+```
+
+On macOS or Linux:
+
+```sh
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m jupyterlab
+```
+
+If you already use Jupyter through Anaconda, install the dependencies in your selected environment and launch Jupyter from it. The server and Python kernel must use an environment with the required dependencies.
+
+In Jupyter, open `notebooks/en/lesson-01.ipynb`. Select **Kernel → Restart Kernel and Run All Cells**. Wait for execution to finish, then change the parameters. The heavier scene example updates when you release a slider. The reset button restores the initial settings.
+
+If you see text such as `VBox(...)` instead of sliders, check that `ipywidgets` is installed in the kernel environment and restart Jupyter. You can also run cells individually with **Shift+Enter**.
+
+Lesson text is edited in the notebooks. Running `python scripts/build_lessons.py` executes all four notebooks and updates the Markdown versions and figures.
 
 ---
 

@@ -1,844 +1,693 @@
-# Lesson 2 — The Math Behind a Gaussian: Breaking It Down Piece by Piece
+[Open the Jupyter notebook](../../notebooks/en/lesson-02.ipynb)
 
-> **What you'll learn:** where the "bell" of the normal distribution comes from and what
-> each symbol in its formula means, how a gaussian extends from 1D to 2D and
-> 3D, what the covariance matrix Σ actually encodes, and why it's decomposed
-> into rotation and scale. And at the end — you'll create your first gaussian by hand
-> and see the result in PyTorch.
+Sliders work in a running Jupyter session. This page preserves the text, code, and static results.
 
----
 
-## Why this matters
+# Lesson 2 — One Gaussian on a Line: Taking Apart the Bell Curve
 
-In lesson 1 we talked about a gaussian intuitively: a "blurry drop of paint" with
-position, shape, color, and transparency. That was enough to grasp the idea.
-But to actually **implement** Gaussian Splatting — you need to understand the math.
+[Course outline and setup](../../README.md) · [Previous lesson](lesson-01-en.md) · [Русская версия](../ru/lesson-02.md)
 
-There won't be any theorem proofs or abstract reasoning here. We'll
-take the engineering path: start with the simplest case (1D), break down every
-symbol, then extend to 2D and 3D. And at the end — we'll manually compute a specific
-gaussian and draw it in code.
+**Lesson outcome:** you will be able to build a bell curve, move it, change its width, and calculate its value at a selected point by hand. Every operation in the formula will have a clear purpose.
 
-After this lesson, you'll be able to take any gaussian from a trained model, look
-at its parameters — and know exactly what you're seeing: where it is, what shape it has,
-which direction it's stretched in.
+You need ordinary arithmetic and the ability to run a Python cell. There are no derivatives, matrices, or probability theory here. We study only a **one-dimensional** Gaussian: one input coordinate → one output number.
 
----
+In lesson 1, Gaussians were soft spots used to build an image. Here, we examine the profile of one such spot along a line: stronger in the middle, weaker farther away. This is a teaching weight function. Pixel colors and overlapping spots come later.
 
-## Starting with 1D: the familiar bell
+## 1. Look at It and Try It First
 
-You've almost certainly seen the bell-shaped curve — the normal distribution. This is
-the foundation everything else is built on. Let's break the formula down symbol by
-symbol.
+Run the cells from top to bottom. The first finds the course folder and loads the prepared visualization tools. You do not need to study their implementation now: later, we calculate the Gaussian itself using ordinary arithmetic.
 
-A one-dimensional gaussian is defined as:
-
-$$
-f(x) = \exp\left(-\frac{(x - \mu)^2}{2\sigma^2}\right)
-$$
-
-Three elements — each doing its own job:
-
-- **x** — the point where we compute the value. Plug in a coordinate —
-  get a number from 0 to 1.
-
-- **μ** (mu) — the center of the bell. This is the point where the value is maximum (equal to 1).
-  Shift μ — the entire bell shifts.
-
-- **σ** (sigma) — the standard deviation. Determines the **width** of the bell.
-  Small σ — narrow, sharp peak. Large σ — wide, gentle hill.
-
-Notice: the normalizing factor $\frac{1}{\sigma\sqrt{2\pi}}$ is absent here.
-In Gaussian Splatting we don't need the area under the curve to equal one — we use
-the gaussian as a **weight function**, not as a probability distribution. The value
-at the center is always 1, and it decays exponentially towards the edges.
-
-Let's feel this with numbers. Take μ = 0 and σ = 1:
-
-| x | (x − μ)² / 2σ² | f(x) |
-|---|-----------------|------|
-| 0 | 0 | 1.000 |
-| 1 | 0.5 | 0.607 |
-| 2 | 2.0 | 0.135 |
-| 3 | 4.5 | 0.011 |
-
-This exponential decay is the key property of a gaussian.
-
-A real-life analogy: imagine a flashlight pointed at a wall. At the center of the
-spot — maximum brightness. Closer to the edges — it gradually dims. At some distance
-the light is indistinguishable from the background. That's how a gaussian works:
-maximum at center μ, width determined by σ, and beyond 3σ — practically zero.
-
-In practice this matters for rendering: we don't need to compute the contribution of
-every gaussian for every pixel. If a pixel is farther than 3σ from the center —
-the contribution is negligibly small, we can skip it. This is a massive savings: instead
-of checking a million gaussians for each of two million pixels, we only check
-the nearby ones. This locality is exactly what makes Gaussian Splatting so fast.
-
----
-
-## From 1D to 2D: enter the covariance matrix
-
-In the one-dimensional case, shape is defined by a single number — σ. But gaussians in
-Gaussian Splatting live in space, not on a line. We need a second dimension.
-
-The naive approach — take two separate σ for the x and y axes:
-
-$$
-f(x, y) = \exp\left(-\frac{1}{2}\left[\frac{(x - \mu_x)^2}{\sigma_x^2} + \frac{(y - \mu_y)^2}{\sigma_y^2}\right]\right)
-$$
-
-This works — but only for ellipses **aligned with the coordinate axes**.
-Want it at 45°? Can't do it. And in real scenes, gaussians are rotated
-arbitrarily: along a wall, diagonally across a roof, at an angle to the floor.
-
-## Covariance matrix: chewing it to bits
-
-This is where the **covariance matrix** Σ comes in. It generalizes "width" to
-any number of dimensions and arbitrary orientations.
-
-A 2D gaussian with a covariance matrix:
-
-$$
-f(\mathbf{x}) = \exp\left(-\frac{1}{2}(\mathbf{x} - \boldsymbol{\mu})^\top \Sigma^{-1} (\mathbf{x} - \boldsymbol{\mu})\right)
-$$
-
-Let's break it apart:
-
-- **x** — now a vector (x, y), a point on a plane
-- **μ** — also a vector ($μ_x$, $μ_y$), the center of the gaussian
-- **(x − μ)** — the vector from center to point
-- **Σ⁻¹** — the inverse covariance matrix (2×2)
-- **(x − μ)ᵀ Σ⁻¹ (x − μ)** — a quadratic form: a single number that
-  determines the "distance" from the center accounting for the ellipse's shape
-
-### What is the covariance matrix
-
-Σ is a 2×2 matrix (in 2D) or 3×3 (in 3D) that fully defines the **shape** of a gaussian:
-
-$$
-\Sigma = \begin{pmatrix} \sigma_{xx} & \sigma_{xy} \\\\ \sigma_{xy} & \sigma_{yy} \end{pmatrix}
-$$
-
-Four numbers. But the matrix is **symmetric** (upper right = lower left),
-so there are only three unique numbers. Each one is responsible for a specific thing:
-
-- **$σ_{xx}$** (upper left) — variance along the X axis. How much the gaussian
-  is "spread" horizontally.
-- **$σ_{yy}$** (lower right) — variance along the Y axis. How much it's "spread"
-  vertically.
-- **$σ_{xy}$** (both off-diagonal) — covariance. The link between axes.
-  Determines the **tilt** of the ellipse.
-
-Analogy: $σ_{xx}$ and $σ_{yy}$ are the lengths of a balloon's axes. $σ_{xy}$ is the angle
-you've rotated it to.
-
-Let's look at examples.
-
----
-
-### Example 1: Identity matrix — a perfect circle
-
-$$
-\Sigma = \begin{pmatrix} 1 & 0 \\\\ 0 & 1 \end{pmatrix}
-$$
-
-Variance is the same along both axes (1 and 1). Covariance = 0 (no tilt).
-The result — a **perfect circle**. The gaussian is "spread" equally
-in all directions, like a drop of water on glass.
-
-This is the starting point. Identity matrix = "nothing special going on."
-Everything is symmetric, nothing is rotated.
-
-![Example 1: Identity matrix](../../assets/lesson2/01_identity.png)
-
----
-
-### Example 2: Different variances — axis-aligned ellipse
-
-$$
-\Sigma = \begin{pmatrix} 3 & 0 \\\\ 0 & 0.5 \end{pmatrix}
-$$
-
-$σ_{xx}$ = 3 (wide along X), $σ_{yy}$ = 0.5 (narrow along Y). Covariance = 0.
-
-The result — an **ellipse stretched horizontally**. A large number on the diagonal =
-the gaussian has "spread out" in that direction. A small number = it's "compressed."
-
-Imagine: take that round balloon from example 1 and squeeze it from top and
-bottom. It flattens sideways — you get a pancake.
-
-Now look at the 3D plot on the right: the peak height is the same (1.0 at center),
-but the "hill" has become wide and flat along X and narrow along Y. Like a mountain ridge.
-
-![Example 2: Axis-aligned ellipse](../../assets/lesson2/02_diagonal.png)
-
----
-
-### Example 3: Small variance — sharp peak
-
-$$
-\Sigma = \begin{pmatrix} 0.3 & 0 \\\\ 0 & 0.3 \end{pmatrix}
-$$
-
-Both variances are small. The gaussian is **very narrow** — almost a point. The value
-drops off rapidly from the center. Already at distance ~1 from center — practically zero.
-
-In Gaussian Splatting, gaussians like these handle **fine details**: sharp
-corners, thin lines, textures. The finer the detail — the smaller the σ.
-
-![Example 3: Narrow peak](../../assets/lesson2/03_narrow.png)
-
----
-
-### Example 4: Large variance — wide spread
-
-$$
-\Sigma = \begin{pmatrix} 4 & 0 \\\\ 0 & 4 \end{pmatrix}
-$$
-
-Both variances are large. The gaussian is **spread** over a large area.
-A smooth, gentle hill.
-
-In GS, gaussians like these cover **uniform regions**: walls, sky, floor.
-One large gaussian replaces many small ones, so the model saves resources.
-
-Compare with example 3: there the peak is sharp as a needle, here — gentle as a hill.
-Both are round ($σ_{xx}$ = $σ_{yy}$), but the scale is completely different.
-
-![Example 4: Wide spread](../../assets/lesson2/04_wide.png)
-
----
-
-### Example 5: Positive covariance — tilt
-
-$$
-\Sigma = \begin{pmatrix} 2 & 1.5 \\\\ 1.5 & 2 \end{pmatrix}
-$$
-
-Here's where it gets interesting. The variances are the same (2 and 2),
-but $σ_{xy} = 1.5$. **The ellipse has rotated by ~45°**.
-
-What does positive covariance mean? When x grows — y tends to grow too.
-The gaussian is "stretched" along the direction x = y (the diagonal from lower-left
-to upper-right).
-
-Physical analogy: put a sausage on a table and rotate it clockwise
-by 45°. That's what positive covariance does.
-
-![Example 5: Positive covariance](../../assets/lesson2/05_positive_cov.png)
-
----
-
-### Example 6: Negative covariance — tilt the other way
-
-$$
-\Sigma = \begin{pmatrix} 2 & -1.5 \\\\ -1.5 & 2 \end{pmatrix}
-$$
-
-Same thing, but $σ_{xy} = −1.5$. The ellipse is tilted **the other way** —
-along the direction $x = −y$.
-
-Negative covariance: when x grows — y decreases. A mirror image of
-example 5.
-
-The sign of the covariance = the direction of the tilt. Plus — up-right. Minus —
-down-right.
-
-![Example 6: Negative covariance](../../assets/lesson2/06_negative_cov.png)
-
----
-
-### Example 7: Strong correlation — almost a line
-
-$$
-\Sigma = \begin{pmatrix} 2 & 1.8 \\\\ 1.8 & 2 \end{pmatrix}
-$$
-
-Covariance $σ_{xy} = 1.8$, with variances of 2. This is very close to the maximum
-(at $σ_{xy} = 2$ the matrix would become singular — determinant = 0).
-
-The result — a **highly elongated ellipse**, almost turning into a line.
-
-Why does this matter for GS? Such "cigar-shaped" gaussians describe
-**thin structures**: wires, object edges, tree branches. The model
-learns to stretch gaussians along thin lines in the scene.
-
-Constraint: $σ_{xy}²$ must be **strictly less** than $σ_{xx}$ · $σ_{yy}$. Otherwise
-the matrix ceases to be positive definite (loses physical meaning — you can't
-describe such a shape as an ellipse). This is one of the reasons why in GS
-the covariance matrix is parameterized through R and S rather than stored directly —
-the decomposition Σ = R·S·Sᵀ·Rᵀ **guarantees** positive definiteness.
-
-![Example 7: Strong correlation](../../assets/lesson2/07_strong_corr.png)
-
----
-
-### Cheat sheet: all cases side by side
-
-![Covariance cheat sheet](../../assets/lesson2/08_cheatsheet.png)
-
----
-
-### Covariance matrix summary
-
-Three numbers — three degrees of freedom:
-
-| Parameter | What it does | Analogy |
-|----------|-----------|----------|
-| **$σ_{xx}$** | Width along X | Stretching the balloon horizontally |
-| **$σ_{yy}$** | Width along Y | Stretching the balloon vertically |
-| **$σ_{xy}$** | Tilt/rotation | Rotating the balloon around its center |
-
-Rules:
-- $σ_{xx} = σ_{yy}$ and $σ_{xy}$ = 0 → **circle**
-- $σ_{xx} ≠ σ_{yy}$ and $σ_{xy}$ = 0 → **axis-aligned ellipse** (horizontal or vertical)
-- $σ_{xy} ≠ 0$ → **rotated ellipse** (direction depends on the sign)
-- |$σ_{xy}$| close to √($σ_{xx}$ · $σ_{yy}$) → **highly elongated** (almost a line)
-
-In 3D it's all the same, only the matrix is 3×3 and there are six unique numbers
-(three variances + three covariances). The ellipse becomes an ellipsoid.
-Three axes instead of two. Three possible rotations instead of one. The principle
-doesn't change.
-
----
-
-## From 2D to 3D: the same logic
-
-Good news: the transition from 2D to 3D is purely mechanical. The formula stays the same,
-only the dimensions grow:
-
-$$
-f(\mathbf{x}) = \exp\left(-\frac{1}{2}(\mathbf{x} - \boldsymbol{\mu})^\top \Sigma^{-1} (\mathbf{x} - \boldsymbol{\mu})\right)
-$$
-
-The exact same formula. Only now:
-
-- **x** = (x, y, z) — a point in 3D
-- **μ** = ($μ_x$, $μ_y$, $μ_z$) — the gaussian's center in 3D
-- **Σ** — a 3×3 matrix
-
-$$
-\Sigma = \begin{pmatrix} \sigma_{xx} & \sigma_{xy} & \sigma_{xz} \\\\ \sigma_{xy} & \sigma_{yy} & \sigma_{yz} \\\\ \sigma_{xz} & \sigma_{yz} & \sigma_{zz} \end{pmatrix}
-$$
-
-The ellipse turns into an **ellipsoid** — a three-dimensional "melon" of arbitrary shape and
-orientation. Six independent parameters (the matrix is symmetric: $σ_{xy} = σ_{yx}$ and
-so on) define:
-
-- Three sizes (along each of the ellipsoid's principal axes)
-- Three orientation angles in space
-
-Important: the gaussian formula is **the same** in 1D, 2D, and 3D. Only
-the dimensionality of vectors and the matrix changes. This unification is one of the
-reasons why gaussians are so convenient as primitives: the same code works in any
-number of dimensions.
-
----
-
-## Mean = position: the simplest parameter
-
-The center μ is just a point in space. Three numbers: (x, y, z). Simply **where**
-the gaussian is located.
-
-Recall lesson 1: when Gaussian Splatting initializes from a point cloud, gaussian positions = point positions. Then during training, each μ
-gets adjusted by gradient descent. The gaussian literally "crawls" to where
-it needs to be.
-
-No tricky math here. But there's an important consequence: **μ is the
-position to which the entire shape is anchored**. Move μ — the whole
-"drop" moves with it, along with all its shape and orientation.
-
----
-
-## The decomposition Σ = R·S·Sᵀ·Rᵀ — why and how
-
-A covariance matrix can't be arbitrary. It must be:
-
-1. **Symmetric** (Σ = Σᵀ)
-2. **Positive semi-definite** (all eigenvalues ≥ 0)
-
-If these conditions are violated — the gaussian loses physical meaning. Negative
-"widths" don't exist.
-
-The problem: during training, PyTorch updates parameters via gradient descent.
-If you store Σ directly and optimize its elements — nothing guarantees that
-after an update it will remain positive semi-definite. At some iteration
-Σ might "break" — and everything goes haywire.
-
-The solution: **don't store Σ directly**. Instead — store two other objects:
-
-- **S** — scale matrix (diagonal matrix, three numbers: $s_x$, $s_y$, $s_z$)
-- **R** — rotation matrix
-
-And **compute** the covariance matrix from them:
-
-$$
-\Sigma = R \cdot S \cdot S^\top \cdot R^\top
-$$
-
-Why does this work? Because with this decomposition, Σ **automatically**
-turns out symmetric and positive semi-definite — for **any** values of
-S and R. Optimize S and R however you want — Σ will always be valid. No
-extra constraints, no "clamping" — the guarantee comes for free.
-
-Let's break down each component.
-
-### S — scale
-
-A diagonal matrix:
-
-$$
-S = \begin{pmatrix} s_x & 0 & 0 \\\\ 0 & s_y & 0 \\\\ 0 & 0 & s_z \end{pmatrix}
-$$
-
-Three numbers — three scales along each axis. In practice they're stored as a vector
-($s_x$, $s_y$, $s_z$). The matrix S·Sᵀ is a diagonal matrix with elements
-($s_x²$, $s_y²$, $s_z²$):
-
-$$
-S \cdot S^\top = \begin{pmatrix} s_x^2 & 0 & 0 \\\\ 0 & s_y^2 & 0 \\\\ 0 & 0 & s_z^2 \end{pmatrix}
-$$
-
-These are the "variances" along each axis **before rotation**. If $s_x$ > $s_y$ > $s_z$ —
-the gaussian is stretched along x, flat along z. If all three are equal — a perfect
-sphere.
-
-### R — rotation
-
-In practice, R is defined through a **quaternion** q = (w, x, y, z) — four numbers with
-the constraint ||q|| = 1.
-
-A **quaternion** is a set of four numbers (w, x, y, z) that describes a rotation
-in 3D space. One number (w) encodes the rotation angle, three numbers
-(x, y, z) encode the axis around which the rotation occurs. The constraint
-$w^2 + x^2 + y^2 + z^2 = 1$ guarantees that this is purely a rotation,
-not a rotation + scaling.
-
-Essentially — a compact way to pack the answer to "around which axis and by
-how many degrees to rotate the object," without the gimbal lock problems that
-come with Euler angles.
-
-> **For the curious:** mathematically, a quaternion is a hypercomplex number,
-> an extension of complex numbers to four dimensions. Proposed by Hamilton
-> in 1843. A complex number $a + bi$ describes rotations on a plane
-> (2D). A quaternion $a + bi + cj + dk$ does the same for 3D. If
-> you want to dig deeper — 3Blue1Brown has an excellent video
-> "Visualizing quaternions." For working with GS, this isn't needed.
-
-But first — why? Why not just store three angles?
-
-### Why Euler angles don't work
-
-The most intuitive way to define a rotation — **Euler angles**: three angles,
-each responsible for rotation around one axis. Rotate 30° around X,
-then 45° around Y, then 10° around Z. Three numbers, clear, compact.
-
-The problem is called **gimbal lock**. The idea is simple: at certain
-angle combinations, two rotation axes **align**, and you lose one
-degree of freedom. There were three independent rotation directions — now there are two.
-
-A concrete example: if the second angle (around Y) equals exactly 90°, then
-rotations around X and Z start doing **the same thing** —
-spinning the object in one plane. You're specifying three different numbers,
-but the actual rotation directions are two. The third one is "stuck."
-
-For Gaussian Splatting this means: at certain gaussian orientations,
-the gradient **doesn't know** how to rotate it in the needed direction.
-Optimization gets stuck or jitters. The model wants to rotate a gaussian
-by 1° in a specific direction, but Euler angles at that point can't
-express it — because two axes have merged.
-
-> If you want to see gimbal lock with your own eyes — google "gimbal lock
-> animation." One 30-second animation explains it better than any text.
-
-### Quaternion: four numbers instead of three
-
-A quaternion encodes rotation differently: not "three sequential rotations
-around axes," but **a single rotation around an arbitrary axis by a given angle**.
-
-The formula for constructing a quaternion from an axis and angle:
-
-$$
-q = \left(\cos\frac{\theta}{2},\quad a_x \cdot \sin\frac{\theta}{2},\quad a_y \cdot \sin\frac{\theta}{2},\quad a_z \cdot \sin\frac{\theta}{2}\right)
-$$
-
-where θ is the rotation angle, and $(a_x, a_y, a_z)$ is the unit vector of the rotation axis.
-
-That is:
-
-- **w** = cos(half the angle) — encodes **how much** to rotate
-- **(x, y, z)** = rotation axis × sin(half the angle) — encodes **what to rotate around**
-
-Why θ/2 and not θ? It's a property of quaternion math — rotation
-"wraps around" twice. For working with GS this doesn't matter: PyTorch optimizes
-the four numbers directly and doesn't care why there's a half in there.
-
-Why four numbers and not three? Because three numbers are **mathematically unable**
-to smoothly describe all possible rotations in 3D. The fourth number is the price
-for gimbal lock never occurring, at any orientation.
-
-Why this matters for GS:
-
-1. **No gimbal lock** — optimization doesn't get stuck at any
-   gaussian orientation.
-2. **Smooth gradients** — a small change in the quaternion = a small
-   rotation. No jumps, no discontinuities. PyTorch optimizes happily.
-
-### Concrete examples
-
-Let's plug in numbers — it'll become clearer.
-
-**90° rotation around the Z axis.**
-Angle θ = 90°, θ/2 = 45°. Axis = (0, 0, 1) — pure Z.
-
-$$
-q = (\cos 45°,\; 0 \cdot \sin 45°,\; 0 \cdot \sin 45°,\; 1 \cdot \sin 45°) = (0.707,\; 0,\; 0,\; 0.707)
-$$
-
-The x and y components = 0, because the rotation axis has no components along X and Y.
-Only z "survives."
-
-**90° rotation around the X axis.**
-Axis = (1, 0, 0). Now sin(45°) lands in x:
-
-$$
-q = (0.707,\; 0.707,\; 0,\; 0)
-$$
-
-**180° rotation around Z.**
-θ/2 = 90°. cos(90°) = 0, sin(90°) = 1:
-
-$$
-q = (0,\; 0,\; 0,\; 1)
-$$
-
-w = 0. The entire quaternion has "gone" into the axis.
-
-**No rotation (θ = 0°).**
-cos(0°) = 1, sin(0°) = 0:
-
-$$
-q = (1,\; 0,\; 0,\; 0)
-$$
-
-The identity quaternion — nothing is rotated. The starting position.
-
-### How the quaternion becomes a matrix
-
-From a quaternion q = (w, x, y, z) the rotation matrix R (3×3) is computed as:
-
-$$
-R = \begin{pmatrix} 1 - 2(y^2 + z^2) & 2(xy - wz) & 2(xz + wy) \\\\ 2(xy + wz) & 1 - 2(x^2 + z^2) & 2(yz - wx) \\\\ 2(xz - wy) & 2(yz + wx) & 1 - 2(x^2 + y^2) \end{pmatrix}
-$$
-
-Looks scary. No need to memorize it. Let's plug in numbers from the first example.
-
-**Example:** q = (0.707, 0, 0, 0.707) — 90° rotation around Z.
-
-Substituting w = 0.707, x = 0, y = 0, z = 0.707:
-
-$$
-R = \begin{pmatrix} 0 & -1 & 0 \\\\ 1 & 0 & 0 \\\\ 0 & 0 & 1 \end{pmatrix}
-$$
-
-Look at the third row and third column: (0, 0, 1). The Z axis is untouched.
-Makes sense — we were rotating around Z, so Z stays in place. And in the upper-left
-2×2 block — that same 90° rotation matrix on a plane that you already saw
-in the 2D examples.
-
-In the 3DGS code this is a single function, ~5 lines of PyTorch. You specify four
-quaternion numbers, get a matrix R (3×3), then Σ = R·S·Sᵀ·Rᵀ. Gradients —
-PyTorch computes them automatically.
-
-For understanding GS you need to remember one thing: **a quaternion is four numbers
-that define a rotation, and PyTorch optimizes them**.
-
-### The full picture
-
-Putting it together:
-
-1. S·Sᵀ — creates a "bare" ellipsoid, stretched along the coordinate axes
-2. R·(...)·Rᵀ — rotates this ellipsoid into the desired orientation
-
-The result: an **arbitrary ellipsoid** in 3D — any size, any orientation.
-And Σ is **guaranteed to be valid**.
-
-Instead of optimizing 6 matrix elements (and praying it doesn't "break"), we optimize 7
-intuitive parameters: 3 scales + 4 quaternion components.
-
----
-
-## Hands-on example: creating a gaussian with concrete numbers
-
-Enough abstractions — let's compute. We'll create a 2D gaussian (so it can be
-drawn on paper) and walk through the entire path: from parameters to the covariance
-matrix.
-
-> **Note:** we're working in 2D, so there are no quaternions here.
-> In 2D, rotation is defined by a single angle θ, and the rotation matrix is a simple 2×2
-> using sin and cos. Gimbal lock doesn't exist in 2D — there's only one rotation axis,
-> nothing to "merge." Quaternions will only be needed in 3D, when we
-> move on to actual Gaussian Splatting.
-
-### Step 1: define the parameters
-
-Center:
-
-$$
-\mu = (2, 3)
-$$
-
-Scale — the gaussian is stretched along the first axis by a factor of two:
-
-$$
-s_x = 2, \quad s_y = 1
-$$
-
-Rotation angle — 45° (π/4). In 2D the rotation matrix:
-
-$$
-R = \begin{pmatrix} \cos 45° & -\sin 45° \\\\ \sin 45° & \cos 45° \end{pmatrix} = \begin{pmatrix} 0.707 & -0.707 \\\\ 0.707 & 0.707 \end{pmatrix}
-$$
-
-### Step 2: build S·Sᵀ
-
-$$
-S \cdot S^\top = \begin{pmatrix} 2^2 & 0 \\\\ 0 & 1^2 \end{pmatrix} = \begin{pmatrix} 4 & 0 \\\\ 0 & 1 \end{pmatrix}
-$$
-
-This is the ellipse before rotation: stretched along the x axis (width 4), normal along y (width 1).
-
-### Step 3: compute Σ = R·S·Sᵀ·Rᵀ
-
-First R · S·Sᵀ:
-
-$$
-R \cdot (S \cdot S^\top) = \begin{pmatrix} 0.707 & -0.707 \\\\ 0.707 & 0.707 \end{pmatrix} \begin{pmatrix} 4 & 0 \\\\ 0 & 1 \end{pmatrix} = \begin{pmatrix} 2.828 & -0.707 \\\\ 2.828 & 0.707 \end{pmatrix}
-$$
-
-Now multiply by Rᵀ:
-
-$$
-\Sigma = \begin{pmatrix} 2.828 & -0.707 \\\\ 2.828 & 0.707 \end{pmatrix} \begin{pmatrix} 0.707 & 0.707 \\\\ -0.707 & 0.707 \end{pmatrix} = \begin{pmatrix} 2.5 & 1.5 \\\\ 1.5 & 2.5 \end{pmatrix}
-$$
-
-### Step 4: read the result
-
-$$
-\Sigma = \begin{pmatrix} 2.5 & 1.5 \\\\ 1.5 & 2.5 \end{pmatrix}
-$$
-
-What do we see?
-
-- **Diagonal** (2.5, 2.5) — variances along the x and y axes are **equal**. But that
-  doesn't mean the ellipse is circular! Covariance ≠ 0 makes it tilted.
-- **Covariance** (1.5) — positive, meaning the x and y axes are **positively
-  correlated**: the ellipse is tilted in the direction "from lower-left to
-  upper-right" — exactly at 45°, just as we specified.
-
-Let's verify: the eigenvalues of Σ are λ₁ = 4, λ₂ = 1 — exactly the squares of our
-scales $s_x²$ and $s_y²$. Everything checks out.
-
-### Step 5: compute the value at a specific point
-
-Take the point (3, 4) — one unit to the right and above the center.
-
-$$
-\mathbf{x} - \boldsymbol{\mu} = (3 - 2, \; 4 - 3) = (1, 1)
-$$
-
-To compute the quadratic form we need Σ⁻¹. For a 2×2 matrix:
-
-$$
-\Sigma^{-1} = \frac{1}{\det \Sigma} \begin{pmatrix} 2.5 & -1.5 \\\\ -1.5 & 2.5 \end{pmatrix}
-$$
-
-$$
-\det \Sigma = 2.5 \cdot 2.5 - 1.5 \cdot 1.5 = 6.25 - 2.25 = 4.0
-$$
-
-$$
-\Sigma^{-1} = \begin{pmatrix} 0.625 & -0.375 \\\\ -0.375 & 0.625 \end{pmatrix}
-$$
-
-Quadratic form:
-
-$$
-(\mathbf{x} - \boldsymbol{\mu})^\top \Sigma^{-1} (\mathbf{x} - \boldsymbol{\mu}) = (1, 1) \begin{pmatrix} 0.625 & -0.375 \\\\ -0.375 & 0.625 \end{pmatrix} \begin{pmatrix} 1 \\\\ 1 \end{pmatrix}
-$$
-
-$$
-= (1, 1) \begin{pmatrix} 0.25 \\\\ 0.25 \end{pmatrix} = 0.5
-$$
-
-Final result:
-
-$$
-f(3, 4) = \exp\left(-\frac{0.5}{2}\right) = \exp(-0.25) \approx 0.779
-$$
-
-The point (3, 4) lies **along the principal axis** of the ellipse (in the rotation direction),
-so the value is high — 0.779. If we had taken a point across the principal axis
-(e.g., (3, 2)), the value would be significantly lower — the ellipse is narrow
-in that direction.
-
----
-
-## Code: creating and visualizing a 2D gaussian in PyTorch
-
-Time to translate math into code. We'll create the same gaussian we computed
-by hand, and draw it.
+The second cell displays the initial plot and the interactive lab. The static lesson keeps the plot visible; open this notebook in Jupyter using the README instructions to use the sliders.
 
 ```python
-import torch
-import matplotlib.pyplot as plt
+%matplotlib inline
+from pathlib import Path
+import sys
 
-mu = torch.tensor([2.0, 3.0]) # center (position)
-scales = torch.tensor([2.0, 1.0]) # scales
-ANGLE_DEG = 45.0 # rotation angle, degrees
+LANG = "en"
 
-# Rotation matrix R
-theta = torch.deg2rad(torch.tensor(ANGLE_DEG))
-R = torch.tensor([
-    [torch.cos(theta), -torch.sin(theta)],
-    [torch.sin(theta),  torch.cos(theta)],
-])
-
-# Scale matrix S
-S = torch.diag(scales) # [[s_x, 0], [0, s_y]]
-
-# Covariance matrix
-cov = R @ S @ S.T @ R.T
-print("Σ =\n", cov)
-# Expected: [[2.5, 1.5], [1.5, 2.5]]
-```
-
-First block: we defined parameters and got Σ. Check — the numbers match our
-manual calculation.
-
-```python
-# Compute gaussian values on a grid of points
-GRID_SIZE = 200
-GRID_RANGE = 6.0 # from -1 to 5 along each axis
-
-# Coordinate grid
-lin = torch.linspace(mu[0] - GRID_RANGE/2, mu[0] + GRID_RANGE/2, GRID_SIZE)
-x_grid, y_grid = torch.meshgrid(lin, lin, indexing="xy")
-
-# Each grid point is a vector (x, y), forming a matrix [N*N, 2]
-points = torch.stack([x_grid, y_grid], dim=-1) # [200, 200, 2]
-
-# Offset from center
-diff = points - mu # [200, 200, 2]
-
-# Quadratic form
-cov_inv = torch.linalg.inv(cov)
-
-mahal = torch.einsum("...i,ij,...j->...", diff, cov_inv, diff)
-
-# Gaussian value
-gaussian = torch.exp(-0.5 * mahal) # [200, 200]
-```
-
-Second block: we created a grid of points and computed the gaussian value at each one.
-The key line is `einsum`: it computes the quadratic form (Mahalanobis distance)
-for all points at once, without loops.
-
-```python
-# Visualization
-fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-# Heatmap
-im = axes[0].imshow(
-    gaussian, origin="lower", cmap="inferno",
-    extent=[lin[0], lin[-1], lin[0], lin[-1]],
+course_root = next(
+    (path for path in (Path.cwd(), *Path.cwd().parents)
+     if (path / "course_demos.py").is_file()),
+    None,
 )
-axes[0].plot(*mu, "w+", markersize=15, markeredgewidth=2)
-axes[0].set_title("Heatmap (gaussian value)")
-axes[0].set_xlabel("x")
-axes[0].set_ylabel("y")
-plt.colorbar(im, ax=axes[0], shrink=0.8)
+if course_root is None:
+    raise FileNotFoundError("Open this notebook from the course repository.")
+if str(course_root) not in sys.path:
+    sys.path.insert(0, str(course_root))
 
-# Contours
-CONTOUR_LEVELS = [0.1, 0.3, 0.5, 0.7, 0.9]
-cs = axes[1].contour(
-    x_grid.numpy(), y_grid.numpy(), gaussian.numpy(),
-    levels=CONTOUR_LEVELS, cmap="plasma",
+from IPython.display import display
+from course_demos import (
+    gaussian_lab,
+    gaussian_figure,
+    construction_figure,
+    width_figure,
 )
-axes[1].clabel(cs, inline=True, fontsize=9)
-axes[1].plot(*mu, "k+", markersize=15, markeredgewidth=2)
-axes[1].set_title("Contours (isolines = ellipses)")
-axes[1].set_xlabel("x")
-axes[1].set_ylabel("y")
-axes[1].set_aspect("equal")
-
-plt.tight_layout()
-plt.show()
 ```
 
-Third block: visualization. Two plots:
+```python
+display(gaussian_figure(mu=2, sigma=2, x=4, language=LANG))
+display(gaussian_lab(language=LANG))
+```
 
-![Example torch](../../assets/lesson2/lesson2_example.png)
+![Figure 1](../../assets/lesson2/en/figure-01.png)
 
-- **Left** — heatmap: brightness = gaussian value. You can see that the
-  maximum (white) is at center (2, 3), and the "spot" is stretched at 45°.
-- **Right** — contour lines. Each line represents points with the same value.
-  These are the **ellipses**, whose shape is determined by the covariance matrix.
+For now, **do not try to read the formula**. Try three experiments:
 
-The white cross marks the center μ. Notice: the ellipses are indeed tilted
-at 45°, stretched in the "lower-left to upper-right" direction — exactly
-as we calculated.
+1. Move the center from 2 to −2. The bell moves, but its shape and peak height stay the same.
+2. Return the center to 2 and reduce the width from 2 to 1. The bell becomes narrower, while its peak remains at 1.
+3. Return the width to 2 and move the selected point along the graph. The measurement point and its value change; the bell itself stays the same.
 
----
+The horizontal axis is a coordinate on a line. The vertical axis is a **weight**: how strongly the Gaussian contributes at that location. It is not the height of a physical object. The strip below the graph encodes the same values as brightness: greater weight → brighter.
 
-## Experiment: change parameters — see the result
+The plot axes stay fixed. Moving the center is therefore not hidden by a moving “camera.” In the calculations below, we use the same parameters: **center 2, width 2**. Our first selected point is **4**.
 
-Try changing parameters and rerunning the code — here's what will happen:
+## 2. How to Read One Point on the Graph
 
-| What to change | How to change it | What you'll see |
+Imagine a ruler. We selected the mark at 4 and want to know the weight there.
+
+| Notation | Read it as | Role in our example |
 |---|---|---|
-| `scales = [2.0, 1.0]` → `[1.0, 1.0]` | Equal scales | Circle instead of ellipse |
-| `scales = [2.0, 1.0]` → `[3.0, 0.5]` | Stretch more | Thin long "cigar" |
-| `ANGLE_DEG = 45` → `0` | Remove rotation | Ellipse along the x axis |
-| `ANGLE_DEG = 45` → `90` | Rotate 90° | Ellipse along the y axis |
-| `mu = [2, 3]` → `[0, 0]` | Shift center | Same shape, different location |
+| $x$ | “x” | The coordinate we inspect: 4 |
+| $\mu$ | “mu” | The center of the bell: 2 |
+| $\sigma$ | “sigma” | The width scale: 2; it must be greater than zero |
+| $f(x)$ | “f of x” | The calculated weight at coordinate $x$ |
 
-Each parameter affects something specific: scale — "compression/stretching,"
-angle — orientation, μ — position. The covariance matrix Σ packs scale
-and rotation into a single structure.
+The parentheses in $f(x)$ identify the function's input. This is **not** multiplication of a letter $f$ by a number $x$. Here, “function” simply means a rule: receive a coordinate, perform some operations, return a number.
 
-This is the essence of gaussian parameterization: **divide and conquer**. Instead of one
-opaque matrix — two intuitive components. Want to make a gaussian
-thicker? Increase the scale. Want to rotate it? Turn the quaternion. Want to
-move it? Shift μ. Everything is orthogonal, everything is predictable — and gradient
-descent loves that.
+For our bell, $f(2)=1$: the center has the maximum weight. Writing $f(4)$ means “calculate the weight at 4.” We will obtain approximately 0.606531.
 
----
+The parameters $\mu$ and $\sigma$ define the whole bell. The coordinate $x$ selects where we measure that already-defined bell.
 
-## Summary
+## 3. First Step: Measure from the Center
 
-- **1D gaussian** — a bell, defined by center μ and width σ. The value decays
-  exponentially: beyond 3σ — practically zero.
+A coordinate alone does not tell us whether we are far from the bell. The point 100 can be exactly at its center if the center is also 100.
 
-- **2D and 3D gaussians** — the same formula, but instead of scalar σ we get a
-  **covariance matrix Σ**, which defines the ellipse/ellipsoid shape: size
-  along each axis + orientation.
+We therefore subtract the center first:
 
-- **μ** — the center (position) of the gaussian. Simply a point in space.
+$$
+d=x-\mu.
+$$
 
-- **Σ = R·S·Sᵀ·Rᵀ** — a decomposition that guarantees Σ is valid for any
-  values of scale S and rotation R. We optimize S and R (via quaternion q) —
-  Σ is always valid.
+The letter $d$ is a short name for an intermediate result: the **displacement from the center**. With $x=4$ and $\mu=2$:
 
-- **In practice** 7 shape parameters are stored: 3 scales (as logarithms) + 4
-  quaternion components. From these, Σ is computed — a 3×3 matrix that fully
-  defines the ellipsoid's shape.
+$$
+d=4-2=2.
+$$
 
----
+We are two units to the right of the center. Now take $x=0$:
 
-We now know how to create and examine a single gaussian. We know how to set its position,
-shape, and orientation — and we can compute its value at any point. But how do you
-get a pixel from it? How do you "splat" a 3D ellipsoid onto a flat screen and
-blend it with others? Lesson 3 — rendering: 3D → 2D projection, alpha compositing,
-and turning gaussians into an image.
+$$
+d=0-2=-2.
+$$
+
+We are two units to the left. The sign records the side, while the magnitude 2 records how far away we are. At the center itself, $d=2-2=0$.
+
+We want equal contributions at equal distances to the left and right. The results $2$ and $-2$ still differ. We will remove that difference two steps from now.
+
+## 4. Second Step: Measure Displacement in Units of Width
+
+Is a displacement of 2 large or small? It is far away for a very narrow spot and nearby for a wide one. We need to compare displacement with width:
+
+$$
+u=\frac{d}{\sigma}.
+$$
+
+The fraction bar means division. The new letter $u$ represents **displacement measured in units of width**. In our example:
+
+$$
+u=\frac{2}{2}=1.
+$$
+
+The point is one width to the right of the center. On the left, we obtain $(-2)/2=-1$.
+
+If the point and center stay fixed but we set $\sigma=1$, then $u=2/1=2$: the same point is now two widths from the center. If we set $\sigma=4$, then $u=2/4=0.5$: only half a width away.
+
+The quantities $x,\mu,\sigma$ use the same units. If coordinates are in centimeters, width must also be in centimeters. In “2 cm / 2 cm,” the units cancel and leave the number 1. We call such a number **dimensionless**. This matters: the rest of the formula depends on relative position, not on whether we use centimeters or meters.
+
+$\sigma$ is a width scale, not the boundary of the spot or its full width. Our bell has no sharp edge at all.
+
+## 5. Third Step: Make the Left and Right Sides Match
+
+Square the relative displacement:
+
+$$
+q=u^2=u\cdot u.
+$$
+
+The small raised 2 means “multiply the number by itself.” The centered dot means multiplication.
+
+To the right of the center:
+
+$$
+q=1^2=1\cdot1=1.
+$$
+
+To the left:
+
+$$
+q=(-1)^2=(-1)\cdot(-1)=1.
+$$
+
+The product of two negative numbers is positive, so both sides produce the same result. At the center, $q=0^2=0$. Two widths away, $q=2^2=4$; three widths away, $q=3^2=9$.
+
+Squaring does two jobs: it removes the side distinction and makes the result grow faster as we move away from the center. But this is still a “measure of separation”: zero at the center, larger farther away. We need a **weight** with the opposite behavior: largest at the center, smaller farther away.
+
+Why square rather than do something else? It is a choice that defines the Gaussian's shape. We could build other symmetric spots, for example using absolute value — magnitude without a sign. They would produce different profiles. Our task is to understand this particular construction, not to prove that every soft shape must be Gaussian.
+
+## 6. Fourth Step: Prepare a Number for Decay
+
+Now divide the square by 2 and change its sign:
+
+$$
+t=-\frac{q}{2}.
+$$
+
+Here, $t$ is an intermediate number, **not time**. Divide first, then apply the minus sign:
+
+- at the center: $q=0$, so $t=-0/2=0$;
+- one width away: $q=1$, so $t=-1/2=-0.5$;
+- two widths away: $q=4$, so $t=-4/2=-2$;
+- three widths away: $q=9$, so $t=-9/2=-4.5$.
+
+As we move farther from the center, the number becomes more negative. The next operation turns that into a smaller **positive** weight.
+
+The divisor 2 controls the rate of decay. It is part of the conventional definition of a Gaussian's scale. We can remove it, but then the same numeric $\sigma$ gives a narrower bell. We will compare the two separately below. That particular divisor is not required for every possible bell-shaped curve.
+
+## 7. The Final Step: What exp and the Number e Mean
+
+We have reached $t=-0.5$, but this is not a weight yet. We need an operation where:
+
+- input 0 gives output 1;
+- a negative input gives a positive number below 1;
+- a more negative input gives a smaller output.
+
+The exponential does this:
+
+$$
+\exp(t)=e^t.
+$$
+
+On the left, “exp” is a function's name and $t$ in parentheses is its input. The right side expresses the same operation as a power. $e$ is a constant, approximately **2.71828**; $t$ is the exponent. “Approximately” means that only the first few digits are shown.
+
+To make this notation concrete, first examine powers of the ordinary number 2.
+
+### Positive, Zero, and Negative Exponents
+
+Positive integer powers are straightforward:
+
+$$
+2^1=2,\qquad 2^2=2\cdot2=4,\qquad 2^3=2\cdot2\cdot2=8.
+$$
+
+Going from exponent 3 to exponent 2 divides by 2: $8/2=4$. One more step down gives $4/2=2$. Continue the same rule:
+
+| Exponent | Operation | Value |
+|---|---|---:|
+| 1 | Starting number | 2 |
+| 0 | $2/2$ | 1 |
+| −1 | $1/2$ | 0.5 |
+| −2 | $0.5/2$ | 0.25 |
+
+Thus $2^0=1$, while $2^{-2}=1/(2\cdot2)=1/4$.
+
+The same rule works for any positive base, including $e$:
+
+$$
+e^0=1,\qquad e^{-1}=\frac{1}{e},\qquad e^{-2}=\frac{1}{e^2}.
+$$
+
+**A negative exponent does not make the answer negative.** It means taking a reciprocal: one divided by the positive power.
+
+### A Half Power
+
+What does an exponent of 0.5 mean? It is half of one: $0.5=1/2$. For a positive number, exponent $1/2$ means the **square root**.
+
+A square root is a nonnegative number that gives the original number when multiplied by itself. For example, $\sqrt{9}=3$, because $3\cdot3=9$. The symbol $\sqrt{\phantom{9}}$ is read as “square root.”
+
+Two equal halves of an exponent add up to exponent 1. Thus $e^{1/2}\cdot e^{1/2}=e^1=e$, which means $e^{1/2}=\sqrt{e}$. Now apply the negative-exponent rule:
+
+$$
+e^{-0.5}=\frac{1}{e^{0.5}}=\frac{1}{\sqrt{e}}.
+$$
+
+Calculate approximately:
+
+$$
+e\approx2.71828,\qquad
+\sqrt{e}\approx1.64872,\qquad
+\frac{1}{1.64872}\approx0.60653.
+$$
+
+The symbol $\approx$ means “approximately equals.” Python uses a more accurate value of $e$ in the actual calculation, so we round only for display.
+
+Other fractional exponents extend the same idea. For example, exponent $1/4$ gives the number that must be multiplied by itself four times to recover the base. For an arbitrary real exponent, the exponential continues these values into a continuous curve. You do not need to calculate every such power by hand: `math.exp` does it.
+
+### Where the Particular Number e Comes From
+
+Here is an arithmetic construction that approaches $e$.
+
+Start at 1. Increasing it by 100% once gives $1\cdot(1+1)=2$. Now divide the increase into two successive steps of 50% **of the current value**:
+
+$$
+1\cdot(1+1/2)\cdot(1+1/2)=1\cdot1.5\cdot1.5=2.25.
+$$
+
+The result exceeds 2 because the second step increases 1.5, not the original one.
+
+If we split the process into $n$ equal steps, each step multiplies the current result by $1+1/n$. The letter $n$ is the number of steps, a positive integer. After $n$ multiplications, we obtain:
+
+$$
+a_n=\left(1+\frac{1}{n}\right)^n.
+$$
+
+The notation $a_n$ names the result for a selected step count; the subscript records which $n$ we used. First divide 1 by $n$, add 1, then multiply the resulting number by itself $n$ times.
+
+As $n$ grows, the results approach one number. That limiting number defines $e$. “Limiting” means the value approached by the sequence as the number of steps increases without bound. Any finite $n$ gives an approximation, not an exact equality.
+
+The next cell demonstrates this numerically. In Python, `**` means exponentiation. The `.8f` format displays eight digits after the decimal point; it changes printing only.
+
+```python
+import math
+
+for n in [1, 2, 10, 100, 1000, 10000]:
+    approximation = (1 + 1 / n) ** n
+    print(f"n = {n:5d} -> {approximation:.8f}")
+
+print(f"math.e     -> {math.e:.8f}")
+```
+
+```text
+n =     1 -> 2.00000000
+n =     2 -> 2.25000000
+n =    10 -> 2.59374246
+n =   100 -> 2.70481383
+n =  1000 -> 2.71692393
+n = 10000 -> 2.71814593
+math.e     -> 2.71828183
+```
+
+We now have a picture of the number $e$ itself, without introducing derivatives. Using an exponential with this base gives the customary Gaussian notation. Observing that “a spot is soft” does not, by itself, derive $e$, the square, and the factor $1/2$: together, they define the mathematical model we chose.
+
+Check the values we need. In `math.exp(t)`, the `math` module contains mathematical functions and `exp` calculates $e^t$. The loop assigns each of the four listed values to `t` in turn.
+
+```python
+for t in [0, -0.5, -2, -4.5]:
+    weight = math.exp(t)
+    print(f"exp({t:4.1f}) = {weight:.6f}")
+```
+
+```text
+exp( 0.0) = 1.000000
+exp(-0.5) = 0.606531
+exp(-2.0) = 0.135335
+exp(-4.5) = 0.011109
+```
+
+Notice that $-4.5$ is far below zero, but $\exp(-4.5)$ is still **positive** — approximately 0.011109. This is 1.1109% of the peak because $0.011109\cdot100=1.1109$.
+
+Percent means “parts per hundred.” Here, it compares a value with the peak of 1. It is not the probability of reaching a point or a fraction of the area under the curve.
+
+## 8. Put the Operations into One Formula
+
+Our recipe is:
+
+$$
+d=x-\mu,\qquad
+u=\frac{d}{\sigma},\qquad
+q=u^2,\qquad
+t=-\frac{q}{2},\qquad
+f(x)=\exp(t).
+$$
+
+Each expression uses the previous step's result. Substituting the intermediate expressions one after another gives:
+
+$$
+f(x)=\exp\left(-\frac{1}{2}
+\left(\frac{x-\mu}{\sigma}\right)^2\right).
+$$
+
+Multiplying by $1/2$ is the same as dividing by 2. We can expand the squared fraction:
+
+$$
+\left(\frac{x-\mu}{\sigma}\right)^2
+=
+\frac{x-\mu}{\sigma}\cdot\frac{x-\mu}{\sigma}
+=
+\frac{(x-\mu)(x-\mu)}{\sigma\cdot\sigma}
+=
+\frac{(x-\mu)^2}{\sigma^2}.
+$$
+
+We multiplied the numerators together and the denominators together. This produces the compact notation:
+
+$$
+\boxed{f(x)=\exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)}.
+$$
+
+The squared width in the denominator did not appear from nowhere: it came from squaring the **entire relative displacement**. The parentheses around $x-\mu$ matter: subtract the center first, then square the result.
+
+The figure below follows the transformation of the whole line; the marked point shows our intermediate numbers.
+
+```python
+display(construction_figure(language=LANG))
+```
+
+![Figure 2](../../assets/lesson2/en/figure-02.png)
+
+## 9. Complete Calculation: Point 4, Center 2, Width 2
+
+Follow the whole path once more, now without introducing new concepts.
+
+| Step | Calculation | Meaning |
+|---|---|---|
+| Displacement | $4-2=2$ | Two units to the right of the center |
+| Divide by width | $2/2=1$ | One width from the center |
+| Square | $1\cdot1=1$ | The same result on both sides |
+| Divide by 2 and negate | $-1/2=-0.5$ | An exponent for a decreasing weight |
+| Exponential | $e^{-0.5}\approx0.606531$ | The weight at the selected point |
+
+Thus **$f(4)\approx0.606531$**. On the graph, it is the point's height above coordinate 4. On the strip, it is the corresponding brightness.
+
+Now perform the same calculation in Python. Variable names follow the stages: `offset` is the displacement, `relative` the relative displacement, `squared` its square, `exponent` the power's exponent, and `weight` the final weight. In code, `=` stores the result on the right in the variable on the left.
+
+```python
+x = 4.0
+mu = 2.0
+sigma = 2.0
+
+offset = x - mu
+relative = offset / sigma
+squared = relative * relative
+exponent = -squared / 2
+weight = math.exp(exponent)
+
+print(f"x - mu                 = {offset:.6f}")
+print(f"(x - mu) / sigma       = {relative:.6f}")
+print(f"relative * relative    = {squared:.6f}")
+print(f"-squared / 2           = {exponent:.6f}")
+print(f"exp(exponent)          = {weight:.6f}")
+```
+
+```text
+x - mu                 = 2.000000
+(x - mu) / sigma       = 1.000000
+relative * relative    = 1.000000
+-squared / 2           = -0.500000
+exp(exponent)          = 0.606531
+```
+
+### Check the Other Side and the Peak
+
+For $x=0$, $\mu=2$, $\sigma=2$:
+
+$$
+d=0-2=-2,\qquad
+u=-2/2=-1,\qquad
+q=(-1)\cdot(-1)=1,
+$$
+
+$$
+t=-1/2=-0.5,\qquad
+f(0)=e^{-0.5}\approx0.606531.
+$$
+
+We obtain the same result as on the right. This is symmetry demonstrated with numbers.
+
+For $x=2$, exactly at the center:
+
+$$
+d=2-2=0,\qquad
+u=0/2=0,\qquad
+q=0\cdot0=0,
+$$
+
+$$
+t=-0/2=0,\qquad
+f(2)=e^0=1.
+$$
+
+With positive width, the same sequence always holds at the center: zero displacement → zero exponent → weight 1.
+
+For $x=6$: $d=6-2=4$, $u=4/2=2$, $q=2\cdot2=4$, $t=-4/2=-2$, so $f(6)=e^{-2}\approx0.135335$.
+
+For $x=8$: $d=8-2=6$, $u=6/2=3$, $q=3\cdot3=9$, $t=-9/2=-4.5$, so $f(8)=e^{-4.5}\approx0.011109$.
+
+The next cell repeats the same operations for all five coordinates. There is no new mathematical technique here: the loop simply runs one calculation several times.
+
+```python
+mu = 2.0
+sigma = 2.0
+
+print(" x    offset  relative  squared  exponent    weight")
+for x in [2.0, 4.0, 0.0, 6.0, 8.0]:
+    offset = x - mu
+    relative = offset / sigma
+    squared = relative * relative
+    exponent = -squared / 2
+    weight = math.exp(exponent)
+    print(
+        f"{x:3.0f}  {offset:8.1f}  {relative:8.1f}  "
+        f"{squared:7.1f}  {exponent:8.1f}  {weight:10.6f}"
+    )
+```
+
+```text
+x    offset  relative  squared  exponent    weight
+  2       0.0       0.0      0.0      -0.0    1.000000
+  4       2.0       1.0      1.0      -0.5    0.606531
+  0      -2.0      -1.0      1.0      -0.5    0.606531
+  6       4.0       2.0      4.0      -2.0    0.135335
+  8       6.0       3.0      9.0      -4.5    0.011109
+```
+
+## 10. What Width Changes and Why the Formula Contains a Two
+
+First, keep $x=4$ and $\mu=2$, but change the width from 2 to 1:
+
+$$
+d=4-2=2,\quad
+u=2/1=2,\quad
+q=2\cdot2=4,\quad
+t=-4/2=-2,
+$$
+
+$$
+f(4)=e^{-2}\approx0.135335.
+$$
+
+Previously, it was 0.606531. After narrowing the bell, the same point lies farther away **in units of width**, so its weight decreases. The center still has weight 1.
+
+Now return to $\sigma=2$, but temporarily remove the divisor 2 from the exponent. At $x=4$, the relative displacement is 1:
+
+- with the divisor: exponent $-1/2=-0.5$, weight approximately 0.606531;
+- without the divisor: exponent $-1=-1$, weight approximately 0.367879.
+
+Without the divisor, weight decreases faster. This is a different numerical width setting.
+
+We can obtain the same narrower profile while keeping the usual formula and changing its width. Check with numbers. With the old width 2 and the divisor removed, the denominator is $2^2=4$. In the usual formula, we need a new positive scale $w$ such that:
+
+$$
+2w^2=4.
+$$
+
+Here, $w$ is just a name for the new width. Divide both sides by 2: $w^2=2$. Therefore $w=\sqrt{2}\approx1.414214$. This is less than 2.
+
+The factor $1/2$ is therefore **part of a scale convention**, not the only possible way to draw a bell. In statistics, the scale $\sigma$ under this convention equals the standard deviation of the corresponding normalized Gaussian. You do not need to calculate statistical deviations from data in this lesson: here, the user supplies $\sigma$.
+
+The figure compares different widths in one formula on the left, and the same width with and without the divisor 2 on the right.
+
+```python
+display(width_figure(language=LANG))
+```
+
+![Figure 3](../../assets/lesson2/en/figure-03.png)
+
+## 11. A Weight Is Neither a Probability nor Opacity
+
+We are calculating an **unnormalized Gaussian with a peak of 1**. Here, “unnormalized” means that we did not multiply the curve by an extra factor making its total area equal to one.
+
+Imagine the area as the amount of paint beneath the plotted line. Stretch the bell horizontally while keeping its height, and there will be more paint. That is fine for our task: the function supplies a spatial weight rather than distributing a fixed total probability.
+
+Therefore:
+
+- the value 0.606531 expresses relative strength at the selected location;
+- it does not mean “a 60.6531% probability of being at exactly this point”;
+- it is not the Gaussian's full opacity;
+- it does not yet determine the final pixel color.
+
+Later, color, an opacity parameter, and blending with other Gaussians will join the spatial weight. Here, we keep one task: **make influence decrease smoothly as we move away from the center**.
+
+A flashlight helps us imagine a soft spot, but a real flashlight need not have an exactly Gaussian profile. The analogy explains the idea; the numerical formula defines our model.
+
+## 12. Where the Formula Works and What Happens at the Edges
+
+**Width must be strictly positive.** With $\sigma=0$, we would have to divide by zero. The formula is undefined even at the center, where it would require $0/0$. We do not use −2 as a width: squaring it would give the same profile as 2, but width should not represent a negative length. We therefore adopt the unambiguous rule $\sigma>0$.
+
+**Points on the left are allowed.** A negative coordinate $x$ or negative center $\mu$ is perfectly valid: it is simply a position to the left of zero on our ruler. Do not confuse the sign of a coordinate with the sign of a width.
+
+**The weight cannot exceed 1.** A square is nonnegative, so after division and negation the exponent is at most zero. For the positive exponential, exponent zero gives 1 and a negative exponent gives less than 1.
+
+**There is no cutoff at three widths.** At distance $3\sigma$, the weight is $e^{-4.5}\approx0.011109$. At $4\sigma$: relative displacement 4 → square 16 → exponent $-16/2=-8$ → weight $e^{-8}\approx0.000335$.
+
+In exact mathematics, any finite coordinate and positive finite width produce a weight greater than zero. On a computer, an extremely small value can round down to zero because numbers have limited storage precision. That is a computational limit, not a break in the mathematical curve.
+
+Renderers sometimes discard weak tails to save time. But “everything beyond $3\sigma$ can always be ignored” is not a universal rule: significance also depends on opacity, other elements, and the accuracy we want.
+
+## 13. Your Own Function and Experiments
+
+Put the familiar operations into a function. It receives `x`, `mu`, and `sigma` and returns one weight. The check `sigma <= 0` stops the calculation with a clear error when width is invalid.
+
+Use ordinary finite numbers; do not enter infinity or special values such as `NaN`. All five intermediate operations remain separate lines so that the formula can be read from top to bottom.
+
+```python
+def gaussian_weight(x, mu, sigma):
+    if sigma <= 0:
+        raise ValueError("sigma must be greater than zero")
+
+    offset = x - mu
+    relative = offset / sigma
+    squared = relative * relative
+    exponent = -squared / 2
+    return math.exp(exponent)
+
+
+x = 4.0
+mu = 2.0
+sigma = 2.0
+
+print(f"weight = {gaussian_weight(x, mu, sigma):.6g}")
+```
+
+```text
+weight = 0.606531
+```
+
+Before changing each line, write down a prediction:
+
+| Change, with the other parameters at their defaults | What to check |
+|---|---|
+| `x = 0.0` | Does the weight equal the value at 4? Why? |
+| `mu = 4.0` | What weight will the selected point at 4 have? |
+| `sigma = 1.0` | Will the weight at 4 increase or decrease? |
+| `sigma = 4.0` | How far away is the point in units of width now? |
+| `sigma = 0.0` | Why should the function stop rather than produce an image? |
+
+Change one parameter at a time and restore the defaults before the next experiment. Within the slider ranges, enter the same values in the lab at the start of the lesson: the results should match. Values μ = 4 and σ = 4 lie outside this panel’s ranges but are valid inputs to the formula. For these, change the arguments of the first gaussian_figure call in the initial graph cell: for example, mu=4, sigma=2, x=4 or mu=2, sigma=4, x=4.
+
+The σ = 0 experiment is performed only in gaussian_weight and must raise ValueError. This deliberately tests invalid input; it is not a graph state. Restore sigma=2 afterwards so subsequent runs finish without an error.
+
+<details>
+<summary>Answers to the parameter experiments</summary>
+
+**Point on the left, $x=0$.** Displacement $0-2=-2$, relative displacement $-2/2=-1$, square $(-1)^2=1$, exponent $-1/2=-0.5$. The weight is $e^{-0.5}\approx0.606531$. Squaring gives the same result as for $x=4$.
+
+**Center at the measurement point, $\mu=4$.** Displacement $4-4=0$, division $0/2=0$, square 0, exponent 0. The weight is $e^0=1$. We moved the whole bell so that the selected point became its peak.
+
+**Width $\sigma=1$.** Displacement $4-2=2$, relative displacement $2/1=2$, square 4, exponent −2. The weight is $e^{-2}\approx0.135335$. The bell became narrower, and this point's weight decreased.
+
+**Width $\sigma=4$.** Displacement 2, relative displacement $2/4=0.5$, square $0.5\cdot0.5=0.25$, exponent $-0.25/2=-0.125$. The weight is $e^{-0.125}\approx0.882497$. The point is only half a width from the center, so its weight increased.
+
+**Width $\sigma=0$.** The operation $2/0$ is already undefined. The check stops the function before division. This is not weight 0, infinite weight, or a valid Gaussian.
+
+</details>
+
+### How to Read Very Small Numbers
+
+The lab may show a small number as `1.523e-8`. Here, the letter `e` is **part of Python's number notation**, not a separate factor $e\approx2.71828$.
+
+Read it as “1.523 times ten to the power of minus eight”:
+
+$$
+1.523\mathrm{e}{-8}
+=1.523\cdot10^{-8}
+=\frac{1.523}{100\,000\,000}
+=0.00000001523.
+$$
+
+We already know how to read negative powers: $10^{-8}$ is one divided by eight tens multiplied together. This format shows a small positive result without a long string of zeros.
+
+In the tables above, `.6f` rounds printed output to six decimal places. A very small number can therefore appear as `0.000000` while remaining positive internally. The last function's output uses `.6g`: six significant digits, switching to the short notation when needed. Rounding the display is different from an actual value rounding down to zero inside a calculation.
+
+## 14. Check Your Understanding
+
+First describe your answer in words, then calculate. Use the five-step sequence as your guide rather than trying to memorize results.
+
+### Exercise 1. The Same Coordinates in Different Units
+
+In the first case, $x=4$ cm, $\mu=2$ cm, $\sigma=2$ cm. In the second, the same quantities are written in meters: $x=0.04$, $\mu=0.02$, $\sigma=0.02$. Does the weight change?
+
+<details>
+<summary>Worked answer</summary>
+
+In centimeters, displacement is $4-2=2$, and relative displacement is $2/2=1$. Then the square is 1, the exponent is −0.5, and the weight is approximately 0.606531.
+
+In meters, displacement is $0.04-0.02=0.02$, and relative displacement is $0.02/0.02=1$. Every following operation is identical: square 1, exponent −0.5, weight approximately 0.606531.
+
+The physical position relative to the width did not change. Only the way we wrote the lengths changed. Convert **all three** quantities: do not mix centimeters and meters in one ratio.
+
+</details>
+
+### Exercise 2. What Breaks Without the Square?
+
+Use center 2 and width 2. For points 4 and 0, skip squaring the relative displacement: divide it directly by 2, negate it, and calculate the exponential. Will symmetry and a peak of 1 survive?
+
+<details>
+<summary>Worked answer</summary>
+
+For point 4: displacement $4-2=2$, relative displacement $2/2=1$. Without squaring, the exponent is $-1/2=-0.5$, and the result is approximately 0.606531.
+
+For point 0: displacement $0-2=-2$, relative displacement $-2/2=-1$. Without squaring, the exponent is $-(-1)/2=+0.5$, and the result is $e^{0.5}=\sqrt{e}\approx1.648721$.
+
+Equal distances give different values. On the left, the weight even exceeds 1 and becomes greater than the center's value. We have a different function rather than our symmetric bell. Squaring was an essential part of the construction.
+
+</details>
+
+### Exercise 3. What Breaks Without the Minus Sign?
+
+Keep the square this time, but remove the minus sign before division. Compare the center with a point one width away.
+
+<details>
+<summary>Worked answer</summary>
+
+At the center, relative displacement is 0, its square is 0, and the exponent is $0/2=0$. The result is 1.
+
+One width away, relative displacement is 1 or −1; either square is 1. Without the minus sign, the exponent is $1/2=+0.5$, giving approximately 1.648721. Two widths away, the square is 4, the exponent is $4/2=2$, and the result is $e^2\approx7.389056$.
+
+Influence grows with distance. Symmetry remains, but the center becomes a minimum. The minus sign converted the increasing squared separation into a decreasing weight.
+
+</details>
+
+### Exercise 4. If Width Doubles, Does the Peak Become Half as High?
+
+And can we say that the Gaussian ends beyond three widths?
+
+<details>
+<summary>Worked answer</summary>
+
+No. At the center, $x=\mu$, so displacement is 0. For any positive width, $0/\sigma=0$, the square is 0, the exponent is 0, and the result is $e^0=1$. Increasing width stretches the profile without changing our fixed peak height.
+
+At three widths, relative displacement is 3, its square is 9, the exponent is −4.5, and the weight is approximately 0.011109. It is small but positive. Farther away, the weight keeps decreasing smoothly rather than stopping. Truncating the tail is a separate approximation in a particular program, not a property of the formula.
+
+</details>
+
+## 15. What Should Be Clear Now
+
+You can take a coordinate and follow the whole path:
+
+**subtract the center → divide by width → square → divide by 2 and negate → calculate the exponential.**
+
+You should now be able to explain:
+
+- why changing $\mu$ moves the bell;
+- why increasing $\sigma$ widens it while preserving a peak of 1;
+- why equal distances to the left and right have equal values;
+- why the minus sign does not make the final result negative;
+- what the exponential, square, and factor $1/2$ do;
+- why a weight is not a probability and why $3\sigma$ is not a sharp boundary.
+
+If one point is still unclear, return to its numerical example and repeat the calculation for another point. Memorizing the compact formula alone is not enough.
+
+In the next lesson, we add a second coordinate: a profile along a line becomes a spot on a plane. We will first see it as an image and a hill, then investigate how to combine two familiar one-dimensional scales.
+
+[Return to the course outline](../../README.md)
