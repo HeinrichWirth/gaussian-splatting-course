@@ -2,7 +2,7 @@
 
 **[Open the interactive course](https://heinrichwirth.github.io/gaussian-splatting-course/#/en)** · [Русский](https://heinrichwirth.github.io/gaussian-splatting-course/#/ru)
 
-The first five lessons are available as a website: a live scene, plots with sliders, step-by-step calculations, and a Gaussian editor. Python and JavaScript code can be expanded alongside the experiments.
+The first two blocks are available as a website: nine lessons with a live scene, plots with sliders, step-by-step calculations, a Gaussian editor, and image fitting. Python and JavaScript code can be expanded alongside the experiments.
 
 [Website source and local setup](site/README.md)
 
@@ -81,10 +81,14 @@ Every lesson includes an interactive experiment or runnable example with adjusta
 | 03 | [A Gaussian on a Plane: From a Bell Curve to a Spot](lessons/en/lesson-03-en.md) | [Heatmap, hill, and slices of one spot](notebooks/en/lesson-03.ipynb) |
 | 04 | [Shape and Rotation: Why We Need a Covariance Matrix](lessons/en/lesson-04-en.md) | [Ellipse rotation and matrix calculations](notebooks/en/lesson-04.ipynb) |
 | 05 | [Several Spots: Color, Opacity, and Overlap](lessons/en/lesson-05-en.md) | [Color blending and a Gaussian editor](notebooks/en/lesson-05.ipynb) |
+| 06 | [Measuring Image Error](lessons/en/lesson-06-en.md) | [Difference maps and MAE/MSE calculations](notebooks/en/lesson-06.ipynb) |
+| 07 | [Derivatives and Gradients: Which Way to Move a Parameter](lessons/en/lesson-07-en.md) | [Loss slopes and step size](notebooks/en/lesson-07.ipynb) |
+| 08 | [Automatic Differentiation and the First Training Loop](lessons/en/lesson-08-en.md) | [The chain rule and training with PyTorch](notebooks/en/lesson-08.ipynb) |
+| 09 | [Reconstructing an Image with Gaussians](lessons/en/lesson-09-en.md) | [Training, comparison, and saving a scene](notebooks/en/lesson-09.ipynb) |
 
 The notebooks contain the full lessons, code, figures, and interactive exercises. The reading versions preserve the text, code, and static results. GitHub shows the saved results; the interactive experiments run in Jupyter.
 
-The first block takes us from one bell curve to a small image. The lesson 5 editor supports adding and removing spots, moving them, changing their sizes, rotation, color, and opacity, and reordering the layers. Scenes can be saved as JSON and loaded again: these parameters will be useful when we start adjusting them automatically in block 2.
+The first block takes us from one bell curve to a small image. The lesson 5 editor supports adding and removing spots, moving them, changing their sizes, rotation, color, and opacity, and reordering the layers. Scenes can be saved as JSON and loaded again: block 2 adjusts these parameters automatically. A trained scene from lesson 9 uses the same file format and opens in the lesson 5 editor.
 
 ### Running the Experiments
 
@@ -110,13 +114,23 @@ On macOS or Linux, the equivalent commands are:
 .venv/bin/python -m jupyterlab
 ```
 
+Lessons 6–7 use the same dependencies. Lessons 8–9 add PyTorch; the whole second block also runs on a CPU. The extra dependencies go into the same environment, before starting Jupyter:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-training.txt
+```
+
+On macOS and Linux, the Python path in this command is `.venv/bin/python`. A CPU-only PyTorch build for Windows and Linux is available through the [official PyTorch installation guide](https://pytorch.org/get-started/locally/). Only `torch` is needed, without `torchvision` or `torchaudio`.
+
+The website runs its calculations in the browser, so its experiments need no Python installation. Expandable code sections preserve the notebook examples; PyTorch training runs in Jupyter.
+
 With an existing Anaconda setup, the dependencies can be installed in the selected environment and Jupyter launched from there. The server and Python kernel use the environment containing those dependencies.
 
 The first lesson is at `notebooks/en/lesson-01.ipynb`. In the open notebook, **Kernel → Restart Kernel and Run All Cells** restarts the kernel and runs every cell in order. Once execution finishes, the figures and parameter controls are ready. The scene example updates when a slider is released. The reset button restores the initial settings.
 
 Text such as `VBox(...)` instead of sliders usually means widget support has not loaded. In that case, we check the `ipywidgets` installation in the kernel environment and restart Jupyter. **Shift+Enter** runs one cell and moves to the next.
 
-Lesson text is edited in the notebooks. Running `python scripts/build_lessons.py` executes all ten notebooks in the first block and updates the Markdown versions and figures. The `--lessons 3 4 5` option limits the build to those lessons. The `--languages ru` and `--languages en` options select one language.
+Lesson text is edited in the notebooks. Running `python scripts/build_lessons.py` executes all eighteen notebooks in the first two blocks and updates the Markdown versions and figures. The `--lessons 6 7 8 9` option limits the build to those lessons. The `--languages ru` and `--languages en` options select one language.
 
 ---
 

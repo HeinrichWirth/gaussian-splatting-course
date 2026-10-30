@@ -6,6 +6,7 @@ COURSE = ROOT.parent
 OUT = ROOT / 'dist'
 REPOSITORY = 'https://github.com/HeinrichWirth/gaussian-splatting-course'
 LABS = {1:(5,'scene'),2:(3,'bell'),3:(3,'plane'),4:(3,'covariance'),5:(3,'editor')}
+LABS.update({6:(3,'loss'),7:(3,'descent'),8:(3,'autograd'),9:(3,'fitting')})
 
 def rewrite_course_links(text, lang):
     """Keep lesson navigation local and preserve README sections on GitHub."""
@@ -76,15 +77,54 @@ def adapt(text, lang, lesson):
         text = text.replace('«Загрузить JSON»', '«Применить JSON из поля»').replace('“Import JSON”', '“Apply JSON from field”')
         text = text.replace('Над ним появляется ссылка для скачивания `gaussian-scene.json`.', 'Тот же набор параметров скачивается файлом `gaussian-scene.json`.')
         text = text.replace('A link above it offers `gaussian-scene.json` as a download.', 'The same parameters can be downloaded as `gaussian-scene.json`.')
+    if lesson == 7:
+        replacements = {
+            'Слева — яркость на прямой:': 'Сверху — яркость на прямой:',
+            'Пунктир — образец с центром 1, сплошная линия — наше пятно.': 'Синяя кривая — образец с центром 1, оранжевая — наше пятно.',
+            'Справа — ошибка:': 'Снизу — ошибка:',
+            'Каждая точка правого графика означает **целый левый график**': 'Каждая точка нижнего графика означает **целый верхний график**',
+            'Оранжевая точка справа — текущее состояние, пустой кружок — следующее после одного обновления.': 'Оранжевая точка на графике ошибки — текущее состояние. В таблице под графиками показан следующий шаг.',
+            'The left plot shows intensity along a line:': 'The upper plot shows intensity along a line:',
+            'The dashed curve is the target centered at 1; the solid curve is our spot.': 'The blue curve is the target centered at 1; the orange curve is our spot.',
+            'The right plot shows loss:': 'The lower plot shows loss:',
+            'Every point on the right represents **an entire left-hand curve**': 'Every point below represents **an entire curve above**',
+            'The orange point on the right is the current state; the hollow circle is the next state after one update.': 'The orange point on the loss plot is the current state. The table beneath the plots shows the next update.',
+        }
+        for before, after in replacements.items():
+            text = text.replace(before, after)
+    if lesson == 8 and text.startswith('## 1.'):
+        if lang == 'ru':
+            text = '''## 1. Колокол начинает двигаться сам
+
+В демонстрации два связанных опыта. Схема наверху прослеживает одну точку: от вычитания центра до квадрата ошибки. У каждого узла показаны результат операции и производная. Поля в группе «Одна точка · цепочка» меняют только этот расчёт.
+
+График ниже обучает центр по всей кривой. Синяя линия — образец с центром $1.5$ и шириной $1$, оранжевая — наша попытка. В начале её центр равен $-1$. Высота и ширина закреплены; меняется только центр.
+
+В группе «Вся кривая · обучение» задаются начальный центр и размер шага. «Один шаг обучения» выполняет одно обновление, «Обучение» продолжает последовательность, «Сброс обучения» возвращает выбранное начало. Рядом с графиком видны номер шага, текущий центр и ошибка. При нулевом размере шага ничего не движется; при слишком большом возможен перелёт. Числовой разбор дальше начнётся с одной точки, а затем соединит все 41 измерение.'''
+        else:
+            text = '''## 1. The Bell Curve Starts Moving on Its Own
+
+The demonstration has two related experiments. The diagram at the top follows one sample, from subtracting the center to squaring the residual. Each node shows its forward value and derivative. Controls in “One point · chain” change only that calculation.
+
+The plot below fits the center using the whole curve. Blue is the target with center $1.5$ and scale $1$; orange is our attempt, starting at $-1$. Height and scale stay fixed; only the center changes.
+
+“Whole curve · training” sets the initial center and learning rate. “One training step” makes one update, “Train” continues the sequence, and “Reset training” returns to the chosen start. The step count, current center, and loss appear beside the plot. A zero rate leaves the curve still; an excessive step can overshoot. The numerical explanation starts with one sample, then connects all 41 measurements.'''
+    if lesson == 9:
+        text = text.replace('Поле «Образец» переключает фигуры, цветок и мелкие клетки.', 'Поле «Картинка» переключает образцы; рядом доступна загрузка своей картинки.')
+        text = text.replace('Смена параметров задаёт новый опыт; «Обучение» строит для него новую последовательность. Сцена в JSON внизу содержит уже обученные пятна.', 'Смена образца или начальных настроек начинает новый опыт. «Обучение» продолжает обновления, «Пауза» останавливает их, «Заново» возвращает начало. Размер шага можно менять по ходу. «Скачать сцену JSON» сохраняет текущие пятна для редактора урока 5.')
+        text = text.replace('“Target” switches between shapes, a flower, and a fine checker pattern.', '“Image” switches between targets; a local image can also be loaded.')
+        text = text.replace('Changing settings defines a new experiment; “Train” builds a new sequence for it. The JSON scene at the bottom contains the trained spots.', 'Changing the target or initialization starts a new experiment. “Train” continues the updates, “Pause” stops them, and “Restart” returns to the beginning. The learning rate can change during a run. “Download scene JSON” saves the current spots for the lesson 5 editor.')
     return rewrite_course_links(text, lang)
 
 
 def main():
     for lang in ['ru','en']:
         lessons=[]
-        for number in range(1,6):
+        for number in range(1,10):
             path=COURSE/'notebooks'/lang/f'lesson-{number:02}.ipynb'
             notebook=json.loads(path.read_text(encoding='utf8'))
+            tagged = any(any(tag.startswith('web-lab:') for tag in cell.get('metadata', {}).get('tags', []))
+                         for cell in notebook['cells'])
             cells=[]
             title=''
             for i,cell in enumerate(notebook['cells']):
@@ -97,7 +137,8 @@ def main():
                     cells.append({'type':'text','source':adapt(src,lang,number),'cell':i})
                     continue
                 if '%matplotlib inline' in src: continue
-                if i==LABS[number][0]:
+                lab_tag = next((tag.split(':', 1)[1] for tag in cell.get('metadata', {}).get('tags', []) if tag.startswith('web-lab:')), None)
+                if lab_tag or (not tagged and i==LABS[number][0]):
                     if number == 5:
                         for j, output in enumerate(cell.get('outputs', [])):
                             if 'image/png' in output.get('data', {}):
@@ -105,7 +146,7 @@ def main():
                                 dest=OUT/name; dest.parent.mkdir(parents=True,exist_ok=True)
                                 dest.write_bytes(base64.b64decode(''.join(output['data']['image/png'])))
                                 cells.append({'type':'image','src':name,'cell':i})
-                    cells.append({'type':'lab','name':LABS[number][1],'cell':i})
+                    cells.append({'type':'lab','name':lab_tag or LABS[number][1],'cell':i})
                 else:
                     for j,output in enumerate(cell.get('outputs',[])):
                         data=output.get('data',{})
@@ -121,10 +162,10 @@ def main():
                         value=''.join(output['data']['text/plain'])
                         if not value.startswith(('<','VBox','HBox')): outputs.append(value)
                 cells.append({'type':'code','source':src,'output':'\n'.join(outputs),'cell':i})
-            lessons.append({'number':number,'title':title,'cells':cells,'source':f'https://github.com/HeinrichWirth/gaussian-splatting-course/blob/main/notebooks/{lang}/lesson-{number:02}.ipynb'})
+            lessons.append({'number':number,'block':1 if number <= 5 else 2,'title':title,'cells':cells,'source':f'https://github.com/HeinrichWirth/gaussian-splatting-course/blob/main/notebooks/{lang}/lesson-{number:02}.ipynb'})
         (OUT/'content').mkdir(exist_ok=True)
         (OUT/'content'/f'{lang}.json').write_text(json.dumps(lessons,ensure_ascii=False),encoding='utf8')
-    print('Exported all five lessons in Russian and English.')
+    print('Exported all nine lessons in Russian and English.')
 
 
 if __name__ == "__main__":

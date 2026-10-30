@@ -1,0 +1,4 @@
+# Lessons 8–9; the CPU build is sufficient.
+-r requirements.txt
+torch>=2.6,<3
+Pillow>=11,<13

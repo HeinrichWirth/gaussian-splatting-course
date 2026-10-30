@@ -19,7 +19,7 @@ INK = "#26364a"
 MUTED = "#52647a"
 PAPER = "#f4f7fb"
 BOUNDS = (-4.0, 4.0, -4.0, 4.0)
-MAX_LAYERS = 24
+MAX_LAYERS = 128
 
 
 def _text(language, ru, en):
@@ -243,7 +243,7 @@ def editor_figure(layers=None, background=(1, 1, 1), selected=0,
                         f"Remaining T at the background = {trace['transmittance']:.4f}")])
     info.text(0, .98, "\n".join(lines), va="top", color=INK, fontsize=10, linespacing=1.6)
     info.add_patch(Rectangle((0, .02), .25, .085, transform=info.transAxes,
-                            facecolor=trace["color"], edgecolor=MUTED))
+                            facecolor=np.clip(trace["color"], 0, 1), edgecolor=MUTED))
     if outline and selected is not None and layers:
         fig.supxlabel(_text(language, "Пунктир: уровень G ≈ 0.607; крестик: проверяемый пиксель.",
                              "Dashed contour: G ≈ 0.607; cross: the probed pixel."), fontsize=9, color=MUTED)
@@ -447,8 +447,8 @@ def gaussian_editor(language="ru"):
             import_scene(controls["json"].value)
         except (ValueError, TypeError, KeyError):
             status.value = _text(language,
-                "<b>Сцена не загружена.</b> Нужен JSON нашего редактора: до 24 пятен, центры от −4 до 4, масштабы от 0.2 до 3, углы от −180° до 180°; RGB и непрозрачность от 0 до 1. Текущая сцена сохранена.",
-                "<b>Scene not loaded.</b> This editor accepts its own JSON format: up to 24 spots, centers from −4 to 4, scales from 0.2 to 3, angles from −180° to 180°; RGB and opacity from 0 to 1. The current scene is unchanged.")
+                "<b>Сцена не загружена.</b> Нужен JSON нашего редактора: до 128 пятен, центры от −4 до 4, масштабы от 0.2 до 3, углы от −180° до 180°; RGB и непрозрачность от 0 до 1. Текущая сцена сохранена.",
+                "<b>Scene not loaded.</b> This editor accepts its own JSON format: up to 128 spots, centers from −4 to 4, scales from 0.2 to 3, angles from −180° to 180°; RGB and opacity from 0 to 1. The current scene is unchanged.")
         else:
             status.value = _text(language, "Сцена загружена.", "Scene loaded.")
 
@@ -473,8 +473,8 @@ def gaussian_editor(language="ru"):
     controls["export"].on_click(export)
     controls["import"].on_click(import_clicked)
     hint = widgets.HTML(_text(language,
-        "<b>Первое пятно в списке — переднее.</b> Параметры относятся к выбранному пятну. Крестик отмечает пиксель, чей цвет разобран в таблице. До 24 пятен; картинка обновляется после отпускания ползунка.",
-        "<b>The first spot in the list is in front.</b> The controls change the selected spot. The cross marks the pixel calculated in the table. Up to 24 spots; the image updates when a slider is released."))
+        "<b>Первое пятно в списке — переднее.</b> Параметры относятся к выбранному пятну. Крестик отмечает пиксель, чей цвет разобран в таблице. До 128 пятен; картинка обновляется после отпускания ползунка.",
+        "<b>The first spot in the list is in front.</b> The controls change the selected spot. The cross marks the pixel calculated in the table. Up to 128 spots; the image updates when a slider is released."))
     layer_controls = widgets.VBox([controls["selected"], controls["x"], controls["y"],
         controls["sx"], controls["sy"], controls["angle"], controls["color"], controls["opacity"]])
     probe_controls = widgets.VBox([controls["background"], controls["probe_x"], controls["probe_y"], controls["outline"]])

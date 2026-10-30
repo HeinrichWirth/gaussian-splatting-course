@@ -152,7 +152,7 @@ class MaterialTests(unittest.TestCase):
 
     def test_every_display_formula_is_exported_as_fenced_math(self):
         for language in ("ru", "en"):
-            for lesson in (1, 2, 3, 4, 5):
+            for lesson in range(1, 10):
                 nb = nbformat.read(ROOT/"notebooks"/language/f"lesson-{lesson:02}.ipynb", as_version=4)
                 formulas = []
                 for cell in nb.cells:
@@ -165,7 +165,7 @@ class MaterialTests(unittest.TestCase):
                 self.assertNotRegex(exported, r"(?m)^\$\$$")
 
     def test_notebooks_executed_and_translations_structurally_match(self):
-        for lesson in (1, 2, 3, 4, 5):
+        for lesson in range(1, 10):
             notebooks = []
             for language in ("ru", "en"):
                 path = ROOT / "notebooks" / language / f"lesson-{lesson:02}.ipynb"
@@ -193,7 +193,7 @@ class MaterialTests(unittest.TestCase):
                 self.assertTrue((path.parent/target).exists(), f"{path}: {destination}")
             self.assertNotIn("application/vnd.jupyter.widget-view", text)
         for language in ("ru", "en"):
-            for lesson in (1, 2, 3, 4, 5):
+            for lesson in range(1, 10):
                 self.assertGreaterEqual(len(list((ROOT/"assets"/f"lesson{lesson}"/language).glob("figure-*.png"))), 2)
 
 

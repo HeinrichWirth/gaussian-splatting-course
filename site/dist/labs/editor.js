@@ -2,7 +2,7 @@ import { compositeAt } from '../math.js';
 import { el, makeLab } from './shared.js';
 
 const FORMAT = 'gaussian-splatting-course-2d';
-const LIMIT = 24;
+const LIMIT = 128;
 const GRID = 161;
 const COPY = value => JSON.parse(JSON.stringify(value));
 let sequence = 0;
@@ -96,7 +96,7 @@ function validateScene(scene, t) {
       'Unrecognized scene format. The editor uses gaussian-splatting-course-2d, version 1.');
   }
   if (!Array.isArray(scene.layers) || scene.layers.length > LIMIT) {
-    fail('В сцене допустимо от 0 до 24 пятен.', 'A scene can contain from 0 to 24 spots.');
+    fail('В сцене допустимо от 0 до 128 пятен.', 'A scene can contain from 0 to 128 spots.');
   }
   if (!tuple(scene.background, 3, 0, 1)) fail('Фон содержит три числа RGB от 0 до 1.', 'The background contains three RGB numbers from 0 to 1.');
   const keys = ['angle_deg', 'center', 'color', 'name', 'opacity', 'scales'];

@@ -266,7 +266,7 @@ class PlaneWidgetTests(unittest.TestCase):
                 bad["layers"][1][key] = value
                 invalid.append(json.dumps(bad))
             too_many = copy.deepcopy(payload)
-            too_many["layers"] = [copy.deepcopy(payload["layers"][0]) for _ in range(25)]
+            too_many["layers"] = [copy.deepcopy(payload["layers"][0]) for _ in range(129)]
             invalid.append(json.dumps(too_many))
             for text in invalid:
                 with self.subTest(payload=text[:60]):
@@ -278,6 +278,18 @@ class PlaneWidgetTests(unittest.TestCase):
                     self.assertEqual(lab.course_state, baseline)
                     self.assertEqual(tuple(c[key].value for key in ("selected", "x", "sx", "color", "background")), controls_before)
                     self.assertEqual(shown.count, before)
+            self.assert_closed_redraws(shown)
+
+    def test_editor_accepts_a_full_trained_scene(self):
+        layers = [make_layer(f"Trained {i}", center=((i % 16) / 2 - 4, (i // 16) - 4),
+                             scales=(.2, .3), opacity=.2) for i in range(128)]
+        with live_lab(gaussian_editor) as (lab, c, shown):
+            lab.course_import(scene_json(layers))
+            self.assertEqual(len(lab.course_state["layers"]), 128)
+            self.assertTrue(c["add"].disabled)
+            c["selected"].value = 127
+            self.assertEqual(lab.course_state["layers"][127]["name"], "Trained 127")
+            self.assertEqual(len(json.loads(lab.course_export())["layers"]), 128)
             self.assert_closed_redraws(shown)
 
     def test_imported_rgb_precision_survives_selection_and_geometry_edits(self):

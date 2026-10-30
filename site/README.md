@@ -1,6 +1,6 @@
-# Gaussian Splatting — interactive Block 1
+# Gaussian Splatting — interactive course
 
-Five lessons in Russian and English, with browser experiments, worked mathematics, and the original Python calculations. The canonical materials live in the repository's [`notebooks/`](../notebooks/); this directory contains their browser presentation.
+Nine lessons in Russian and English, with browser experiments, worked mathematics, and the original Python calculations. The canonical materials live in the repository's [`notebooks/`](../notebooks/); this directory contains their browser presentation.
 
 ## Local site
 
@@ -16,7 +16,7 @@ The complete site is in `dist/`. It needs no backend, Python kernel, API keys, o
 
 ## Content generation
 
-The exporter reads the ten notebooks from the same repository, adapts their presentation to the browser controls, and writes lesson JSON and saved figures into `site/dist/`. Python 3 and its standard library are sufficient:
+The exporter reads the eighteen notebooks from the same repository, adapts their presentation to the browser controls, and writes lesson JSON and saved figures into `site/dist/`. Python 3 and its standard library are sufficient:
 
 ```sh
 python site/scripts/export_content.py
@@ -30,7 +30,7 @@ npm --prefix site run build
 
 The exporter uses existing notebook outputs. Changes to Python examples or illustration code require refreshed notebook outputs first, following the course's [notebook build instructions](../README.md). Committed site content is ready to serve without regenerating it.
 
-The browser experiments are in `dist/labs/`; `dist/math.js` contains their Gaussian and alpha-composition calculations. Paths are relative to the site directory, and lesson routes use hashes such as `#/ru/2`. The same files work at the GitHub Pages project path `/gaussian-splatting-course/`.
+The browser experiments are in `dist/labs/`; `dist/math.js` contains their Gaussian and alpha-composition calculations, while `dist/learning-math.js` contains loss functions, gradients, and the browser training loop. The second block uses actual projected gradient descent; PyTorch examples remain available in the notebooks. Paths are relative to the site directory, and lesson routes use hashes such as `#/ru/2`. The same files work at the GitHub Pages project path `/gaussian-splatting-course/`.
 
 ## Validation
 

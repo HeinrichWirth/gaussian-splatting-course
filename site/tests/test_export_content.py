@@ -35,7 +35,7 @@ class ExportLinkTests(unittest.TestCase):
                   "and [this section](#section-3).")
         self.assertEqual(exporter.rewrite_course_links(source, "en"), source)
 
-    def test_generated_block_two_links_do_not_escape_the_pages_project(self):
+    def test_generated_transition_to_block_two_stays_in_the_site(self):
         for language, filename, anchor in [
             ("ru", "README_ru.md", "блок-2-как-гауссианы-учатся"),
             ("en", "README.md", "block-2-how-gaussians-learn"),
@@ -44,8 +44,9 @@ class ExportLinkTests(unittest.TestCase):
                 lessons = json.loads((SITE / "dist" / "content" / f"{language}.json").read_text(encoding="utf-8"))
                 text = "\n".join(cell["source"] for lesson in lessons
                                  for cell in lesson["cells"] if cell["type"] == "text")
-                expected = f"{REPOSITORY}/blob/main/{filename}#{anchor}"
-                self.assertIn(expected, text)
+                self.assertIn(f"](#/{language}/6)", text)
+                self.assertEqual([lesson["number"] for lesson in lessons], list(range(1, 10)))
+                self.assertEqual([lesson["block"] for lesson in lessons], [1]*5+[2]*4)
                 self.assertNotRegex(text, r"\]\(\.\./\.\./README(?:_ru)?\.md(?:#|\))")
 
     def test_exporter_uses_notebooks_inside_this_repository(self):

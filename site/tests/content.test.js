@@ -2,4 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import katex from '../dist/vendor/katex/dist/katex.mjs';
-for(const lang of ['ru','en'])test(`all five ${lang} lessons, assets, code, and every formula render`,()=>{const lessons=JSON.parse(fs.readFileSync(new URL(`../dist/content/${lang}.json`,import.meta.url),'utf8'));assert.equal(lessons.length,5);let formulaCount=0;for(const lesson of lessons){assert.equal(lesson.cells.filter(c=>c.type==='lab').length,1);assert.ok(lesson.cells.filter(c=>c.type==='code').length>=4);for(const cell of lesson.cells){if(cell.type==='image')assert.ok(fs.existsSync(new URL('../dist/'+cell.src,import.meta.url)));if(cell.type==='text'){assert.ok(!/\]\([^)]*\.ipynb\)/.test(cell.source));for(const match of cell.source.matchAll(/(```[\s\S]*?```|`[^`\n]*`)|(\$\$([\s\S]*?)\$\$)|(\$([^$\n]+)\$)/g)){if(match[1])continue;formulaCount++;assert.doesNotThrow(()=>katex.renderToString((match[3]??match[5]).trim(),{displayMode:!!match[2],throwOnError:true,strict:'ignore'}),`${lang}/${lesson.number}: ${match[0]}`)}}}}assert.ok(formulaCount>400);console.log(`${lang}: ${formulaCount} formulas checked`)});
+// A single mistyped closing delimiter used to leave a formula as raw text.
+for (const lang of ['ru', 'en']) test(`${lang} has no unclosed math delimiters`, () => {
+  const lessons = JSON.parse(fs.readFileSync(new URL(`../dist/content/${lang}.json`, import.meta.url), 'utf8'));
+  for (const lesson of lessons) for (const cell of lesson.cells.filter(cell => cell.type === 'text')) {
+    const prose = cell.source.replace(/```[\s\S]*?```|`[^`\n]*`/g, '');
+    const remaining = prose.replace(/\$\$[\s\S]*?\$\$|\$[^$\n]+\$/g, '');
+    assert.ok(!/(^|[^\\])\$/.test(remaining), `${lang}/${lesson.number}, cell ${cell.cell}: unmatched $`);
+  }
+});
+for(const lang of ['ru','en'])test(`all nine ${lang} lessons, assets, code, and every formula render`,()=>{const lessons=JSON.parse(fs.readFileSync(new URL(`../dist/content/${lang}.json`,import.meta.url),'utf8'));assert.equal(lessons.length,9);let formulaCount=0;for(const lesson of lessons){assert.equal(lesson.cells.filter(c=>c.type==='lab').length,1);assert.ok(lesson.cells.filter(c=>c.type==='code').length>=4);for(const cell of lesson.cells){if(cell.type==='image')assert.ok(fs.existsSync(new URL('../dist/'+cell.src,import.meta.url)));if(cell.type==='text'){assert.ok(!/\]\([^)]*\.ipynb\)/.test(cell.source));for(const match of cell.source.matchAll(/(```[\s\S]*?```|`[^`\n]*`)|(\$\$([\s\S]*?)\$\$)|(\$([^$\n]+)\$)/g)){if(match[1])continue;formulaCount++;assert.doesNotThrow(()=>katex.renderToString((match[3]??match[5]).trim(),{displayMode:!!match[2],throwOnError:true,strict:'ignore'}),`${lang}/${lesson.number}: ${match[0]}`)}}}}assert.ok(formulaCount>400);console.log(`${lang}: ${formulaCount} formulas checked`)});

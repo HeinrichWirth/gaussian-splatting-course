@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import base64
 import re
+import sys
 from pathlib import Path
 
 import nbformat
@@ -136,16 +137,21 @@ def export_notebook(notebook, source: Path, target: Path, language: str, number:
     target.write_text("\n\n".join(parts).rstrip() + "\n", encoding="utf-8")
 
 
-def build(execute: bool = True, numbers=(1, 2, 3, 4, 5), languages=("ru", "en")) -> None:
+def build(execute: bool = True, numbers=tuple(range(1, 10)), languages=("ru", "en"), kernel="python3") -> None:
     for language in languages:
         for number in numbers:
             source = ROOT / "notebooks" / language / f"lesson-{number:02}.ipynb"
             notebook = nbformat.read(source, as_version=4)
             if execute:
-                notebook = NotebookClient(
-                    notebook, timeout=180, kernel_name="python3", store_widget_state=True,
+                client = NotebookClient(
+                    notebook, timeout=300, kernel_name=kernel, store_widget_state=True,
                     resources={"metadata": {"path": str(source.parent)}},
-                ).execute()
+                )
+                if kernel == "python3":
+                    # A globally registered Python kernel may lack the current
+                    # environment's PyTorch. Keep the default build in its caller's environment.
+                    client.create_kernel_manager().kernel_spec.argv[0] = sys.executable
+                notebook = client.execute()
             notebook.metadata.pop("widgets", None)
             for cell in notebook.cells:
                 cell.metadata.pop("execution", None)
@@ -163,9 +169,10 @@ def build(execute: bool = True, numbers=(1, 2, 3, 4, 5), languages=("ru", "en"))
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-execute", action="store_true", help="Export existing notebook outputs")
-    parser.add_argument("--lessons", type=int, nargs="+", choices=range(1, 6),
-                        default=[1, 2, 3, 4, 5], help="Lesson numbers to build (default: all)")
+    parser.add_argument("--lessons", type=int, nargs="+", choices=range(1, 10),
+                        default=list(range(1, 10)), help="Lesson numbers to build (default: all)")
+    parser.add_argument("--kernel", default="python3", help="Jupyter kernel with course dependencies")
     parser.add_argument("--languages", nargs="+", choices=["ru", "en"],
                         default=["ru", "en"], help="Languages to build (default: both)")
     args = parser.parse_args()
-    build(execute=not args.no_execute, numbers=args.lessons, languages=args.languages)
+    build(execute=not args.no_execute, numbers=args.lessons, languages=args.languages, kernel=args.kernel)

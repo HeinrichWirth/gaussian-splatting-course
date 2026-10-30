@@ -416,7 +416,7 @@ We'll first lengthen one petal and rotate it. Then we'll move the flower's cente
 
 The pixel probe uses a `161 × 161` grid. There are 160 intervals between −4 and 4: $(4-(-4))/160=8/160=0.05$. One pixel-slider step is therefore `0.05`, corresponding to the next pixel center. Moving this slider measures the image; it does not move the spots.
 
-The editor supports up to 24 spots. Centers range from −4 to 4, scales from `0.2` to `3`, and angles from −180° to 180°. These are convenient control-panel limits, not new restrictions on the Gaussian formula.
+The editor supports up to 128 spots. Centers range from −4 to 4, scales from `0.2` to `3`, and angles from −180° to 180°. These are convenient control-panel limits, not new restrictions on the Gaussian formula.
 
 ## 11. Saving and Restoring the Scene
 
@@ -525,6 +525,6 @@ After exporting the JSON, resetting the editor, and importing the saved scene, t
 
 We now have the whole chain from this block: position and shape determine spatial weight; opacity turns it into alpha; color and layer order determine each pixel contribution; the background fills the remaining share. We can change each number and explain what happened to the image.
 
-In [block 2](../../README.md#block-2-how-gaussians-learn), we'll take an existing image as a target. First, we'll measure how far our drawing is from it; then we'll begin adjusting parameters automatically.
+In [block 2](lesson-06-en.md), we'll take an existing image as a target. First, we'll measure how far our drawing is from it; then we'll begin adjusting parameters automatically.
 
 This calculation is described in [Simple alpha compositing in the W3C specification](https://www.w3.org/TR/compositing-1/#simplealphacompositing). Here, we worked through the case of an opaque background with ordinary layer compositing.

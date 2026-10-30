@@ -6,3 +6,7 @@
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 
 .code-block[data-language="JavaScript"]{--code-language:"JavaScript"}.browser-code .code-content pre{max-height:520px}.browser-code .quiet-button{display:inline-block;margin:12px}.gs-editor .ge-canvas{max-width:500px!important}
+
+.side-block+.side-block{margin-top:30px;padding-top:25px;border-top:1px solid #dcded4}.side-block .side-label{margin-bottom:10px}.course-block+.course-block{margin-top:58px}.block-description{font-size:14px;line-height:1.8;color:#727c66;max-width:660px;margin:0 0 24px}.course-block .section-heading{align-items:center}.course-block .section-heading h2{max-width:700px}.course-block .section-heading span{white-space:nowrap}
+
+.katex{position:relative}
