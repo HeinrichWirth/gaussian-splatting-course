@@ -1,5 +1,12 @@
 # Gaussian Splatting Course
 
+**[Открыть интерактивный курс](https://heinrichwirth.github.io/gaussian-splatting-course/#/ru)** · [English](https://heinrichwirth.github.io/gaussian-splatting-course/#/en)
+
+Первые пять уроков доступны как сайт: живая сцена, графики с ползунками, подробные вычисления и редактор гауссиан. Код Python и JavaScript раскрывается рядом с опытами.
+
+[Исходники сайта и локальный запуск](site/README.md)
+
+
 ---
 
 ![Poster](assets/Poster.jpg)

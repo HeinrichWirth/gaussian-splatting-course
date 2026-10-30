@@ -5,4 +5,5 @@ __pycache__/
 .jupyter/
 .pytest_cache/
 .virtual_documents/
+site/node_modules/
 

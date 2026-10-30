@@ -1,0 +1,33 @@
+.foundations-lab{font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#26364a;max-width:100%;margin:1.5rem 0;padding:clamp(14px,2.5vw,28px);border:1px solid #d7e1eb;border-radius:16px;background:#fff;box-sizing:border-box}
+.foundations-lab *{box-sizing:border-box}
+.foundations-title{font-size:1.25rem;margin:0 0 .5rem;line-height:1.3}
+.foundations-intro{margin:0 0 1.3rem;color:#52647a;max-width:75ch}
+.foundations-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(220px,1fr);gap:24px;align-items:start}
+.foundations-visual{min-width:0}
+.foundations-canvas{display:block;width:100%;max-width:100%;height:auto;border:1px solid #d7e1eb;border-radius:9px;background:#f4f7fb}
+.foundations-controls{display:flex;flex-direction:column;gap:15px;min-width:0}
+.foundations-control-line{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;font-size:.88rem}
+.foundations-number{width:76px;max-width:38%;font:inherit;font-variant-numeric:tabular-nums;color:#26364a;border:1px solid #bdcbd9;border-radius:6px;padding:5px;background:#fff}
+.foundations-control input[type=range]{width:100%;min-height:26px;margin:0;accent-color:#2463a9;cursor:pointer}
+.foundations-select-label{display:flex;flex-direction:column;gap:6px;font-size:.88rem}
+.foundations-select-label select{font:inherit;color:#26364a;max-width:100%;width:100%;padding:9px 8px;border:1px solid #bdcbd9;background:#fff;border-radius:7px}
+.foundations-check{display:flex;align-items:flex-start;gap:9px;font-size:.88rem}
+.foundations-check input{accent-color:#2463a9;width:17px;height:17px;margin-top:3px;flex-shrink:0}
+.foundations-reset{font:inherit;font-size:.9rem;border:1px solid #aec1d3;color:#194b7e;background:#edf4fb;border-radius:8px;padding:9px 13px;cursor:pointer;align-self:flex-start}
+.foundations-reset:hover{background:#dfeefa}
+.foundations-lab :focus-visible{outline:3px solid #db8b39;outline-offset:3px}
+.foundations-card{margin-top:14px;border:1px solid #e1e8ef;background:#f7f9fc;border-radius:9px;padding:13px 15px}
+.foundations-card h4{font-size:.95rem;margin:0 0 10px}
+.foundations-parameters{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:7px 14px;margin:0;font-size:.8rem;line-height:1.35}
+.foundations-parameters dt{color:#52647a}
+.foundations-parameters dd{font-variant-numeric:tabular-nums;margin:0;overflow-wrap:anywhere}
+.foundations-note{font-size:.82rem;line-height:1.55;color:#52647a;margin:1rem 0 0}
+.foundations-calculation{margin-top:20px;max-width:100%;overflow:auto}
+.foundations-lab .foundations-step-table{border-collapse:collapse;width:100%;min-width:0;font-size:.88rem;margin:0}
+.foundations-step-table caption{text-align:left;color:#26364a;font-size:1rem;font-weight:650;padding-bottom:9px}
+.foundations-step-table th,.foundations-step-table td{text-align:left;border-bottom:1px solid #dce5ee;padding:10px 12px;vertical-align:top}
+.foundations-step-table th{font-weight:500;width:35%;color:#52647a}
+.foundations-step-table td{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.foundations-step-table tr:nth-child(even){background:#f2f6fa}
+@media(max-width:980px){.foundations-layout{grid-template-columns:minmax(0,1fr)}.foundations-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.foundations-check,.foundations-reset{grid-column:1/-1}.foundations-step-table th{width:36%}}
+@media(max-width:440px){.foundations-controls{grid-template-columns:minmax(0,1fr)}.foundations-lab{padding:12px}.foundations-control-line{font-size:.9rem}.foundations-step-table{font-size:.79rem}.foundations-step-table th,.foundations-step-table td{padding:8px 6px}.foundations-parameters{font-size:.77rem;gap:8px}.foundations-step-table th{width:33%}}
