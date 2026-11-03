@@ -20,15 +20,18 @@ function number(ui,label,value,min,max,step,change) {
   const field=el('div','control'),header=el('div','control-top'),caption=el('label','',label);
   const input=el('input'),range=el('input');
   input.type='number';range.type='range';input.id='recon-number-'+(++nextId);caption.htmlFor=input.id;
-  for(const n of [input,range]) {Object.assign(n,{value,min,max,step});n.setAttribute('aria-label',label);}
+  // Range inputs snap values immediately, using their current bounds and step.
+  for(const n of [input,range]) {Object.assign(n,{min,max,step,value});n.setAttribute('aria-label',label);}
   input.addEventListener('input',()=>{
     const v=input.valueAsNumber;
     if(Number.isFinite(v)&&v>=min&&v<=max){range.value=String(v);change(v);}
   });
-  input.addEventListener('blur',()=>{input.value=range.value;});
+  input.addEventListener('blur',()=>{
+    if(input.value!==range.value){input.value=range.value;change(Number(range.value));}
+  });
   range.oninput=()=>{input.value=range.value;change(Number(range.value));};
   header.append(caption,input);field.append(header,range);ui.controls.append(field);
-  return v=>{input.value=range.value=v;};
+  return v=>{range.value=v;input.value=range.value;};
 }
 function choose(ui,label,opts,value,change) {
   return addSelect(ui.controls,{label,value:String(value),options:opts.map(([v,s])=>({value:String(v),label:s})),
