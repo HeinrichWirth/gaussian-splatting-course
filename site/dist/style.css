@@ -10,3 +10,14 @@
 .side-block+.side-block{margin-top:30px;padding-top:25px;border-top:1px solid #dcded4}.side-block .side-label{margin-bottom:10px}.course-block+.course-block{margin-top:58px}.block-description{font-size:14px;line-height:1.8;color:#727c66;max-width:660px;margin:0 0 24px}.course-block .section-heading{align-items:center}.course-block .section-heading h2{max-width:700px}.course-block .section-heading span{white-space:nowrap}
 
 .katex{position:relative}
+
+.article-prose pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 14px 16px;
+  border: 1px solid #d8dfcc;
+  border-radius: 6px;
+  background: #eef1e7;
+  line-height: 1.6;
+}
+.article-prose pre code { background: transparent; padding: 0; }

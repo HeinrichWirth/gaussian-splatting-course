@@ -16,6 +16,7 @@ import nbformat
 from nbclient import NotebookClient
 
 ROOT = Path(__file__).resolve().parents[1]
+PUBLISHED_LESSONS = range(1, 22)
 
 
 def github_markdown(text: str) -> str:
@@ -116,7 +117,7 @@ def export_notebook(notebook, source: Path, target: Path, language: str, number:
             parts.append("```python\n" + cell.source + "\n```")
             for output in cell.get("outputs", []):
                 if output.output_type == "stream":
-                    value = output.text.strip()
+                    value = "\n".join(line.rstrip() for line in output.text.strip().splitlines())
                     if value:
                         parts.append("```text\n" + value + "\n```")
                 elif output.output_type in ("display_data", "execute_result"):
@@ -137,7 +138,7 @@ def export_notebook(notebook, source: Path, target: Path, language: str, number:
     target.write_text("\n\n".join(parts).rstrip() + "\n", encoding="utf-8")
 
 
-def build(execute: bool = True, numbers=tuple(range(1, 10)), languages=("ru", "en"), kernel="python3") -> None:
+def build(execute: bool = True, numbers=PUBLISHED_LESSONS, languages=("ru", "en"), kernel="python3") -> None:
     for language in languages:
         for number in numbers:
             source = ROOT / "notebooks" / language / f"lesson-{number:02}.ipynb"
@@ -169,8 +170,8 @@ def build(execute: bool = True, numbers=tuple(range(1, 10)), languages=("ru", "e
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-execute", action="store_true", help="Export existing notebook outputs")
-    parser.add_argument("--lessons", type=int, nargs="+", choices=range(1, 10),
-                        default=list(range(1, 10)), help="Lesson numbers to build (default: all)")
+    parser.add_argument("--lessons", type=int, nargs="+", choices=PUBLISHED_LESSONS,
+                        default=PUBLISHED_LESSONS, help="Lesson numbers to build (default: all)")
     parser.add_argument("--kernel", default="python3", help="Jupyter kernel with course dependencies")
     parser.add_argument("--languages", nargs="+", choices=["ru", "en"],
                         default=["ru", "en"], help="Languages to build (default: both)")

@@ -2,7 +2,7 @@
 
 **[Open the interactive course](https://heinrichwirth.github.io/gaussian-splatting-course/#/en)** · [Русский](https://heinrichwirth.github.io/gaussian-splatting-course/#/ru)
 
-The first two blocks are available as a website: nine lessons with a live scene, plots with sliders, step-by-step calculations, a Gaussian editor, and image fitting. Python and JavaScript code can be expanded alongside the experiments.
+The first four blocks are live, with 21 lessons. A single patch of color grows into a scene seen from a moving camera, then into a reconstruction from photographs. Each experiment has expandable code.
 
 [Website source and local setup](site/README.md)
 
@@ -85,10 +85,24 @@ Every lesson includes an interactive experiment or runnable example with adjusta
 | 07 | [Derivatives and Gradients: Which Way to Move a Parameter](lessons/en/lesson-07-en.md) | [Loss slopes and step size](notebooks/en/lesson-07.ipynb) |
 | 08 | [Automatic Differentiation and the First Training Loop](lessons/en/lesson-08-en.md) | [The chain rule and training with PyTorch](notebooks/en/lesson-08.ipynb) |
 | 09 | [Reconstructing an Image with Gaussians](lessons/en/lesson-09-en.md) | [Training, comparison, and saving a scene](notebooks/en/lesson-09.ipynb) |
+| 10 | [Coordinates and Transformations in 3D](lessons/en/lesson-10-en.md) | [Experiment and calculations](notebooks/en/lesson-10.ipynb) |
+| 11 | [How a Camera and Perspective Work](lessons/en/lesson-11-en.md) | [Experiment and calculations](notebooks/en/lesson-11.ipynb) |
+| 12 | [A Gaussian in 3D: Shape, Scale, and Rotation](lessons/en/lesson-12-en.md) | [Experiment and calculations](notebooks/en/lesson-12.ipynb) |
+| 13 | [Projecting a Gaussian: From a Volume to a Spot](lessons/en/lesson-13-en.md) | [Experiment and calculations](notebooks/en/lesson-13.ipynb) |
+| 14 | [Rendering a Scene: Depth, Visibility, and Blending](lessons/en/lesson-14-en.md) | [Experiment and calculations](notebooks/en/lesson-14.ipynb) |
+| 15 | [Why Color Changes with Viewing Direction](lessons/en/lesson-15-en.md) | [Experiment and calculations](notebooks/en/lesson-15.ipynb) |
+| 16 | [Training a 3D Scene from Multiple Images](lessons/en/lesson-16-en.md) | [Experiment and calculations](notebooks/en/lesson-16.ipynb) |
+| 17 | [How the Model Changes the Number of Gaussians](lessons/en/lesson-17-en.md) | [Experiment and calculations](notebooks/en/lesson-17.ipynb) |
+| 18 | [The Original Paper and the Fast Implementation](lessons/en/lesson-18-en.md) | [Experiment and calculations](notebooks/en/lesson-18.ipynb) |
+| 19 | [Preparing Data: Capture, Cameras, and COLMAP](lessons/en/lesson-19-en.md) | [Experiment and calculations](notebooks/en/lesson-19.ipynb) |
+| 20 | [A First Captured Scene](lessons/en/lesson-20-en.md) | [Experiment and calculations](notebooks/en/lesson-20.ipynb) |
+| 21 | [Evaluating Quality and Diagnosing Artifacts](lessons/en/lesson-21-en.md) | [Experiment and calculations](notebooks/en/lesson-21.ipynb) |
 
 The notebooks contain the full lessons, code, figures, and interactive exercises. The reading versions preserve the text, code, and static results. GitHub shows the saved results; the interactive experiments run in Jupyter.
 
 The first block takes us from one bell curve to a small image. The lesson 5 editor supports adding and removing spots, moving them, changing their sizes, rotation, color, and opacity, and reordering the layers. Scenes can be saved as JSON and loaded again: block 2 adjusts these parameters automatically. A trained scene from lesson 9 uses the same file format and opens in the lesson 5 editor.
+
+Lessons 19–21 include [nine calibrated photographs of a sculpture](data/photographic-example/README.md). Eight views provide the training images. The ninth shows how the scene looks from a held-out camera. The lessons also cover preparing personal photographs in COLMAP and running the full CUDA implementation separately.
 
 ### Running the Experiments
 
@@ -114,7 +128,7 @@ On macOS or Linux, the equivalent commands are:
 .venv/bin/python -m jupyterlab
 ```
 
-Lessons 6–7 use the same dependencies. Lessons 8–9 add PyTorch; the whole second block also runs on a CPU. The extra dependencies go into the same environment, before starting Jupyter:
+Lesson 8 introduces PyTorch. All four blocks run on a CPU with the additional training dependencies. The Windows PowerShell command before starting Jupyter is:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-training.txt
@@ -130,7 +144,7 @@ The first lesson is at `notebooks/en/lesson-01.ipynb`. In the open notebook, **K
 
 Text such as `VBox(...)` instead of sliders usually means widget support has not loaded. In that case, we check the `ipywidgets` installation in the kernel environment and restart Jupyter. **Shift+Enter** runs one cell and moves to the next.
 
-Lesson text is edited in the notebooks. Running `python scripts/build_lessons.py` executes all eighteen notebooks in the first two blocks and updates the Markdown versions and figures. The `--lessons 6 7 8 9` option limits the build to those lessons. The `--languages ru` and `--languages en` options select one language.
+Lesson text is edited in the notebooks. Running `python scripts/build_lessons.py` executes all 42 notebooks in the first four blocks and updates the Markdown versions and figures. The `--lessons 6 7 8 9` option limits the build to those lessons. The `--languages ru` and `--languages en` options select one language.
 
 ---
 

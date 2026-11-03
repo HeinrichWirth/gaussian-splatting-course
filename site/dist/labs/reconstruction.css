@@ -1,0 +1,12 @@
+.reconstruction-lab .recon-images { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,125px),1fr)); gap:.7rem; align-items:start; }
+.reconstruction-lab figure { margin:0; min-width:0; }
+.reconstruction-lab canvas { width:100%; height:auto; background:#fff; border:1px solid var(--line,#dce1d7); image-rendering:pixelated; }
+.reconstruction-lab figcaption { font-size:.8rem; color:var(--muted,#637368); margin-bottom:.35rem; }
+.reconstruction-lab input[type=number] { width:5rem; max-width:100%; font:inherit; }
+.reconstruction-lab .lab-controls { min-width:0; }
+.reconstruction-lab input[type=file],.reconstruction-lab select { max-width:100%; }
+.reconstruction-lab .lab-readout { overflow-x:auto; }
+.reconstruction-lab table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+.reconstruction-lab tr { border-bottom:1px solid var(--line,#dde2da); }
+.reconstruction-lab td,.reconstruction-lab th { padding:.4rem .7rem; text-align:left; }
+.reconstruction-lab th { font-weight:500; }

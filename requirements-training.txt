@@ -1,4 +1,4 @@
-# Lessons 8–9; the CPU build is sufficient.
+# CPU dependencies for training and the static-scene notebooks.
 -r requirements.txt
 torch>=2.6,<3
 Pillow>=11,<13

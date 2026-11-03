@@ -19,8 +19,10 @@ def rewrite_course_links(text, lang):
             return f'({REPOSITORY}/blob/main/{filename}{anchor})'
         return f'(#/{lang})'
 
-    return re.sub(r'\(\.\./\.\./(README(?:_ru)?\.md)(#[^\s)]*)?\)',
+    text = re.sub(r'\(\.\./\.\./(README(?:_ru)?\.md)(#[^\s)]*)?\)',
                   readme_link, text)
+    # Source files and photo credits live alongside the notebooks in the repository.
+    return re.sub(r'\]\(\.\./\.\./([^\s)]+)\)', rf']({REPOSITORY}/blob/main/\1)', text)
 
 def adapt(text, lang, lesson):
     text = re.sub(r'^\[(?:План курса|Программа курса|Course plan|Course outline|Course programme|Course program|Course overview)[^\n]*\n?', '', text, flags=re.M)
@@ -120,7 +122,7 @@ The plot below fits the center using the whole curve. Blue is the target with ce
 def main():
     for lang in ['ru','en']:
         lessons=[]
-        for number in range(1,10):
+        for number in range(1,22):
             path=COURSE/'notebooks'/lang/f'lesson-{number:02}.ipynb'
             notebook=json.loads(path.read_text(encoding='utf8'))
             tagged = any(any(tag.startswith('web-lab:') for tag in cell.get('metadata', {}).get('tags', []))
@@ -138,7 +140,8 @@ def main():
                     continue
                 if '%matplotlib inline' in src: continue
                 lab_tag = next((tag.split(':', 1)[1] for tag in cell.get('metadata', {}).get('tags', []) if tag.startswith('web-lab:')), None)
-                if lab_tag or (not tagged and i==LABS[number][0]):
+                legacy_demo = not tagged and number in LABS and i == LABS[number][0]
+                if lab_tag or legacy_demo:
                     if number == 5:
                         for j, output in enumerate(cell.get('outputs', [])):
                             if 'image/png' in output.get('data', {}):
@@ -162,10 +165,11 @@ def main():
                         value=''.join(output['data']['text/plain'])
                         if not value.startswith(('<','VBox','HBox')): outputs.append(value)
                 cells.append({'type':'code','source':src,'output':'\n'.join(outputs),'cell':i})
-            lessons.append({'number':number,'block':1 if number <= 5 else 2,'title':title,'cells':cells,'source':f'https://github.com/HeinrichWirth/gaussian-splatting-course/blob/main/notebooks/{lang}/lesson-{number:02}.ipynb'})
+            block = next(i for i, last in enumerate((5, 9, 15, 21), start=1) if number <= last)
+            lessons.append({'number':number,'block':block,'title':title,'cells':cells,'source':f'https://github.com/HeinrichWirth/gaussian-splatting-course/blob/main/notebooks/{lang}/lesson-{number:02}.ipynb'})
         (OUT/'content').mkdir(exist_ok=True)
         (OUT/'content'/f'{lang}.json').write_text(json.dumps(lessons,ensure_ascii=False),encoding='utf8')
-    print('Exported all nine lessons in Russian and English.')
+    print(f'Exported {len(lessons)} lessons in Russian and English.')
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Gaussian Splatting — interactive course
 
-Nine lessons in Russian and English, with browser experiments, worked mathematics, and the original Python calculations. The canonical materials live in the repository's [`notebooks/`](../notebooks/); this directory contains their browser presentation.
+Twenty-one lessons in Russian and English, with browser experiments, worked mathematics, and the original Python calculations. The canonical materials live in the repository's [`notebooks/`](../notebooks/); this directory contains their browser presentation.
 
 ## Local site
 
@@ -16,7 +16,7 @@ The complete site is in `dist/`. It needs no backend, Python kernel, API keys, o
 
 ## Content generation
 
-The exporter reads the eighteen notebooks from the same repository, adapts their presentation to the browser controls, and writes lesson JSON and saved figures into `site/dist/`. Python 3 and its standard library are sufficient:
+The exporter reads the 42 notebooks from the same repository, adapts their presentation to the browser controls, and writes lesson JSON and saved figures into `site/dist/`. Python 3 and its standard library are sufficient:
 
 ```sh
 python site/scripts/export_content.py
@@ -31,6 +31,10 @@ npm --prefix site run build
 The exporter uses existing notebook outputs. Changes to Python examples or illustration code require refreshed notebook outputs first, following the course's [notebook build instructions](../README.md). Committed site content is ready to serve without regenerating it.
 
 The browser experiments are in `dist/labs/`; `dist/math.js` contains their Gaussian and alpha-composition calculations, while `dist/learning-math.js` contains loss functions, gradients, and the browser training loop. The second block uses actual projected gradient descent; PyTorch examples remain available in the notebooks. Paths are relative to the site directory, and lesson routes use hashes such as `#/ru/2`. The same files work at the GitHub Pages project path `/gaussian-splatting-course/`.
+
+Lessons 10–15 share a perspective camera and 3D covariance functions. Lessons 16–21 use the same projection and front-to-back renderer to fit and evaluate a scene. Camera axes point right, down and forward. Pixel centers have integer coordinates.
+
+The photographic example contains eight training views and one reserved view. Its [source and calibration notes](../data/photographic-example/README.md) include the image license and the command to reproduce the 117-splat reference. The lesson 20 viewer uses the same scene coordinates as Python. Raw photographs, trained parameters, and the smaller browser capture can be used offline.
 
 ## Validation
 
