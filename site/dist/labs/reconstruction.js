@@ -146,7 +146,8 @@ export function mountBuildScene(host,lang='ru',saved={}) {
     if(v==='custom'){source.value=s.kind;msg.textContent=t('Поле JSON ниже принимает набор с камерами или сцену.','The JSON field below accepts a capture with cameras or a scene.');return;}
     if(v==='small'){replace(syntheticCapture(),'small');return;}
     msg.textContent=t('Загрузка снимков…','Loading photographs…');
-    try {const response=await fetch(new URL('../assets/reconstruction/photographs.json',import.meta.url));
+    const captureFile=v==='reference'?'photographs-80.json':'photographs.json';
+    try {const response=await fetch(new URL('../assets/reconstruction/'+captureFile,import.meta.url));
       if(!response.ok)throw Error();const data=decodeCapture(await response.json());
       if(v==='reference'){
         const ref=await fetch(new URL('../assets/reconstruction/photo-reference.json',import.meta.url));
@@ -202,7 +203,9 @@ export function mountBuildScene(host,lang='ru',saved={}) {
     for(let i=0;i<3;i++)cam.center[i]+=s.offset*d*cam.rotation[i][0];
     const img=renderScene(s.scene,cam,f.width,f.height);
     pixels(target,f.rgb,f.width,f.height);pixels(model,img,f.width,f.height);
-    stats(ui,[[t('Шаг / пятен','Step / splats'),s.step+' / '+points.length],
+    const progress=system?[t('Шаг / пятен','Step / splats'),s.step+' / '+points.length]
+      :[t('Пятен в сцене','Splats in scene'),points.length];
+    stats(ui,[progress,
       [t('Обучающих кадров','Training frames'),s.capture.frames.filter(f=>f.split==='train').length],
       ['MSE · '+f.split,s.offset===0?fmt(imageScores(img,f.rgb).mse,8):t('Новый ракурс без эталона','Novel pose without a reference')]]);
   }

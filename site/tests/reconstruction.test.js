@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {tiledFrame,smallScene,orbit,syntheticCapture,trainingSystem,fitColors,
         imageScores,triangulate,decodeCapture,damagedScene} from '../dist/reconstruction-math.js';
 import {renderScene} from '../dist/splat-render.js';
@@ -28,4 +29,14 @@ test('identical frames, degenerate baselines, invalid portable captures',()=>{
   assert.equal(triangulate(80,0,40,40),null);
   assert.equal(triangulate(80,.4,40,32),4);
   assert.throws(()=>decodeCapture({format:'gs-course-capture-v1',frames:[]}));
+});
+
+test('the photographic viewer reproduces the held-out Python score at 80 by 60',()=>{
+  const assets=new URL('../dist/assets/reconstruction/',import.meta.url);
+  const capture=JSON.parse(readFileSync(new URL('photographs-80.json',assets),'utf8'));
+  const scene=JSON.parse(readFileSync(new URL('photo-reference.json',assets),'utf8'));
+  const frame=decodeCapture(capture).frames.find(f=>f.split==='test');
+  assert.deepEqual([frame.name,frame.width,frame.height],['view-04.jpg',80,60]);
+  const rgb=renderScene(scene,frame.camera,frame.width,frame.height);
+  assert.ok(Math.abs(imageScores(rgb,frame.rgb).mse-0.00981748)<1e-7);
 });
