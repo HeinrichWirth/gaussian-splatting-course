@@ -13,7 +13,7 @@ from geometry3d import (
 BLUE, ORANGE, GREEN = "#365ac0", "#bf623d", "#528165"
 PRINCIPAL = (100., 60.)
 NEAR = .2
-AXES = {"z": (0, 0, 1), "y": (0, 1, 0), "xyz": (1, 1, 1)}
+AXES = {"z": (0, 0, 1), "y": (0, 1, 0), "x": (1, 0, 0), "xyz": (1, 1, 1)}
 
 
 def _rot(axis, angle):
@@ -38,13 +38,18 @@ def frame_figure(language="ru", point_x=1, object_x=1, camera_x=1, yaw=0):
         panels, (shape, camera), (center, np.zeros(3)), (basis, np.eye(3)),
         ("Мир" if ru else "World", "Камера" if ru else "Camera"),
     ):
-        _plane(ax, title, "x", "z", (-6, 6), (-2, 7))
+        camera_view = ax is panels[1]
+        _plane(ax, title, "x", "z", (-8, 8) if camera_view else (-6, 6),
+               (-8, 8) if camera_view else (-2, 7))
         ax.plot(points[:, 0], points[:, 2], color=BLUE)
         ax.scatter(points[1, 0], points[1, 2], color=ORANGE, zorder=4)
         ax.scatter(origin[0], origin[2], color="black", marker="s")
         for j, color in [(0, ORANGE), (2, GREEN)]:
             ax.arrow(origin[0], origin[2], axes[0, j], axes[2, j],
                      color=color, width=.04, length_includes_head=True)
+        corner = origin + axes[:, 0] * camera[1, 0]
+        ax.plot([origin[0], corner[0], points[1, 0]],
+                [origin[2], corner[2], points[1, 2]], ":", color="#796597", lw=1.6)
     fig.suptitle("P (x, y, z) = " + str(tuple(np.round(camera[1], 3).tolist())) +
                  (" · в камере" if ru else " · camera frame"))
     return fig
@@ -54,7 +59,8 @@ def perspective_figure(language="ru", focal=80, depth=4, camera_z=0):
     ru = language == "ru"
     z = depth - camera_z
     fig, (side, screen) = plt.subplots(1, 2, figsize=(8.4, 4.2), layout="constrained")
-    _plane(side, "Лучи сверху" if ru else "Rays from above", "x", "z", (-2.2, 2.2), (-2.5, 8))
+    _plane(side, "Лучи сверху" if ru else "Rays from above", "x", "z", (-2.2, 2.2), (-2.5, 8.7))
+    side.plot([.5, 1.5], [8, 8], lw=4, color="#796597")
     side.plot([.5, 1.5], [depth]*2, lw=4, color=BLUE)
     side.scatter(0, camera_z, c="black", marker="s")
     for x in [.5, 1, 1.5]:
@@ -62,13 +68,17 @@ def perspective_figure(language="ru", focal=80, depth=4, camera_z=0):
     side.axhline(camera_z+NEAR, color=GREEN, ls=":")
     _plane(screen, "Сенсор" if ru else "Sensor", "u [px]", "v [px]", (-.5, 200.5), (120.5, -.5))
     screen.plot(*PRINCIPAL, "+", c="#555555")
-    if z > NEAR:
+    far_z = 8 - camera_z
+    if far_z > NEAR:
+        ends = [project_point([x, -.5, far_z], focal, PRINCIPAL, NEAR) for x in [.5, 1.5]]
+        screen.plot(*np.array(ends).T, lw=4, color="#796597")
+    if z > NEAR + 1e-10:
         a, b = [project_point([x, .5, z], focal, PRINCIPAL, NEAR) for x in [.5, 1.5]]
         screen.plot([a[0], b[0]], [a[1], b[1]], lw=4, color=BLUE)
         screen.scatter(*(a+b)/2, color=ORANGE, zorder=4)
         title = f"z = {z:.2f} m, Δu = {b[0]-a[0]:.2f} px"
     else:
-        title = "За ближней плоскостью" if ru else "Clipped at the near plane"
+        title = "Синяя перекладина отсечена" if ru else "Blue bar clipped at the near plane"
     fig.suptitle(title)
     return fig
 
@@ -82,7 +92,7 @@ def _sphere_lines():
         yield np.column_stack([np.cos(t)*np.cos(longitude), np.cos(t)*np.sin(longitude), np.sin(t)])
 
 
-def ellipsoid_figure(language="ru", sx=2, sy=.75, sz=1, angle=45, axis="z"):
+def ellipsoid_figure(language="ru", sx=2, sy=.75, sz=1, angle=45, axis="z", probe_x=1.5):
     ru = language == "ru"
     rotation = _rot(AXES[axis], angle)
     fig, panels = plt.subplots(1, 2, figsize=(8.4, 4.3), layout="constrained")
@@ -97,8 +107,13 @@ def ellipsoid_figure(language="ru", sx=2, sy=.75, sz=1, angle=45, axis="z"):
         for i, color in enumerate([ORANGE, GREEN, "#7952a4"]):
             tip = (view @ rotation)[:, i] * [sx, sy, sz][i]
             ax.plot([0, tip[0]], [0, tip[1]], c=color, lw=2)
+        probe = np.array([probe_x, 0., 0.])
+        address = view @ probe
+        ax.scatter(*address[:2], marker="x", color="#222222", s=56, zorder=5)
+    relative = (rotation.T @ probe) / [sx, sy, sz]
+    weight = np.exp(-.5 * (relative @ relative))
     fig.suptitle(("Поверхность одного масштаба" if ru else "One-scale surface") +
-                 f"   ({sx:g}, {sy:g}, {sz:g})")
+                 f"   ({sx:g}, {sy:g}, {sz:g}) · G({probe_x:g}, 0, 0) = {weight:.3f}")
     return fig
 
 
@@ -136,11 +151,12 @@ def footprint_figure(language="ru", depth=4, sz=1, yaw=0, tilt=0):
 FIGURES = {10: frame_figure, 11: perspective_figure, 12: ellipsoid_figure, 13: footprint_figure}
 CONTROLS = {
     10: [("point_x","Точка x","Point x",-2,2,.1,1), ("object_x","Объект x","Object x",-2,2,.1,1),
-         ("camera_x","Камера x","Camera x",-2,2,.1,1), ("yaw","Поворот камеры °","Camera yaw °",-70,70,1,0)],
+         ("camera_x","Камера x","Camera x",-2,2,.1,1), ("yaw","Поворот камеры °","Camera yaw °",-180,180,1,0)],
     11: [("focal","Фокус, px","Focal length, px",20,160,1,80), ("depth","Объект z","Object z",1,7,.1,4),
          ("camera_z","Камера z","Camera z",-2,6,.1,0)],
     12: [("sx","Масштаб x","Scale x",.2,3,.05,2), ("sy","Масштаб y","Scale y",.2,3,.05,.75),
-         ("sz","Масштаб z","Scale z",.2,3,.05,1), ("angle","Угол °","Angle °",-180,180,1,45)],
+         ("sz","Масштаб z","Scale z",.2,3,.05,1), ("angle","Угол °","Angle °",-180,180,1,45),
+         ("probe_x","Метка x, м","Probe x, m",-3,3,.05,1.5)],
     13: [("depth","Глубина центра","Center depth",.5,7,.1,4), ("sz","Масштаб z","Scale z",.1,2,.1,1),
          ("yaw","Ракурс °","View angle °",-90,90,1,0),
          ("tilt","Поворот формы °","Shape rotation °",-90,90,1,0)],

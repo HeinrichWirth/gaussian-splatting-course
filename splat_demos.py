@@ -23,16 +23,25 @@ def panel(images, titles, note=None):
     return fig
 
 
-def visibility_figure(lang, angle=0., depth=3.5, u=32, visible="both"):
+def visibility_figure(lang, angle=0., depth=3.5, u=32, visible="both", background="white"):
     scene, cam = sr.overlap_scene(depth), sr.orbit_camera(angle)
     if visible != "both":
         scene["splats"] = [scene["splats"][int(visible)]]
-    a = sr.render_scene(scene,cam)
-    b = sr.render_scene(scene,cam,reverse=True)
+    bg = (1.,)*3 if background == "white" else (0.,)*3
+    a = sr.render_scene(scene, cam, background=bg)
+    b = sr.render_scene(scene, cam, background=bg, reverse=True)
     fig = panel([a,b],_labels(lang,['По глубине','Обратный порядок'],['Depth order','Reversed order']))
     for ax in fig.axes:
         ax.plot(u,32,marker='+',color='black',markersize=8)
-    fig.suptitle(f'({u}, 32) · RGB = '+np.array2string(a[32,u],precision=3))
+    remaining = 1.
+    parts = []
+    for spot in sr.project_splats(scene, cam, 65, 65):
+        alpha = sr.footprint_alpha((u, 32), spot)
+        label = _labels(lang, 'красное', 'red') if spot["color"][0] else _labels(lang, 'синее', 'blue')
+        parts.append(f'{label} {remaining*alpha:.3f}')
+        remaining *= 1-alpha
+    parts.append(f'{_labels(lang, "фон", "background")} {remaining:.3f}')
+    fig.suptitle(f'({u}, 32) · RGB = '+np.array2string(a[32,u],precision=3)+'\n'+'  ·  '.join(parts), fontsize=10)
     return fig
 
 
@@ -90,7 +99,7 @@ def ray_landscape(lang):
     ax.axvline(4,color='#888',ls=':');ax.set(xlabel='Z',ylabel='MSE');ax.legend();return fig
 
 
-def density_figure(lang, operation="initial", selected=0, steps=0, threshold=.001):
+def density_figure(lang, operation="initial", selected=0, steps=0, threshold=.001, pixel=16):
     scene=sr.density_scene()
     if operation=="adaptive":
         scene=sr.density_pass(scene,threshold)
@@ -100,8 +109,16 @@ def density_figure(lang, operation="initial", selected=0, steps=0, threshold=.00
         scene=sr.density_step(scene)
     cam=sr.translated_camera(0,42)
     images=[sr.render_scene(s,cam,33,33) for s in (sr.density_scene(True),scene)]
-    return panel(images,_labels(lang,['Образец','Модель'],['Target','Model']),
-                 f'N = {len(scene["splats"])} · MSE = {sr.density_loss(scene):.7f}')
+    target_red, model_red = (image[16, pixel, 0] for image in images)
+    titles = _labels(lang, ['Образец', 'Модель'], ['Target', 'Model'])
+    fig = panel(images, [f"{title} · R = {red:.3f}" for title, red in
+                         zip(titles, (target_red, model_red))],
+                f'N = {len(scene["splats"])} · MSE = {sr.density_loss(scene):.7f}\n'
+                f'(u, v) = ({pixel}, 16) · ΔR = {model_red-target_red:+.3f}')
+    for ax in fig.axes:
+        ax.plot(pixel, 16, marker="s", markersize=10, markerfacecolor="none",
+                markeredgecolor="#172a40", markeredgewidth=1.2)
+    return fig
 
 
 def density_chart(lang):
@@ -125,7 +142,8 @@ def experiment(number,lang):
     if number==14:
         draw=visibility_figure
         controls=dict(angle=slider(tr('Угол','Angle'),0,-140,140,1),depth=slider(tr('Красное Z','Red Z'),3.5,2,6,.05),
-                      u=slider('u',32,0,64,1),visible=menu(tr('Пятна','Splats'),[(tr('Оба','Both'),'both'),(tr('Красное','Red'),'0'),(tr('Синее','Blue'),'1')]))
+                      u=slider('u',32,0,64,1),visible=menu(tr('Пятна','Splats'),[(tr('Оба','Both'),'both'),(tr('Красное','Red'),'0'),(tr('Синее','Blue'),'1')]),
+                      background=menu(tr('Фон','Background'),[(tr('Белый','White'),'white'),(tr('Чёрный','Black'),'black')]))
     elif number==15:
         draw=harmonic_figure
         controls=dict(angle=slider(tr('Азимут','Azimuth'),-36.87,-180,180,.1),elevation=slider(tr('Наклон','Elevation'),0,-80,80,1),
@@ -140,7 +158,8 @@ def experiment(number,lang):
                             ['Initial','Clone','Split','Prune','Reset','Adaptive']),
                          ['initial','clone','split','prune','reset','adaptive']))
         controls=dict(operation=menu(tr('Действие','Action'),options),selected=menu(tr('Пятно','Splat'),[0,1]),
-                      steps=slider(tr('Шагов после','Steps after edit'),0,0,12,1),threshold=slider(tr('Порог','Threshold'),.001,0,.025,.0001))
+                      steps=slider(tr('Шагов после','Steps after edit'),0,0,12,1),threshold=slider(tr('Порог','Threshold'),.001,0,.025,.0001),
+                      pixel=slider(tr('Столбец u (строка 16)','Column u (row 16)'),16,0,32,1))
     def redraw(**settings):
         fig=draw(lang,**settings);display(fig);plt.close(fig)
     output=widgets.interactive_output(redraw,controls)

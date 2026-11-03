@@ -56,11 +56,12 @@ export function mountVisibility(host,lang='ru',saved={}){
   const t=text(lang),ui=setup(host,lang,t('Кто перед кем','Which splat comes first'),
     t('Два кадра одной камеры. Изменён только порядок смешивания.','One camera, two images. Only the compositing order changes.'),
     [t('По глубине','Depth order'),t('Обратный порядок','Reversed order')]);
-  const state=stateFrom({angle:0,depth:3.5,pixel:32,isolate:'both'},saved);
+  const state=stateFrom({angle:0,depth:3.5,pixel:32,isolate:'both',background:'white'},saved);
   function draw(){
     const camera=orbitCamera(state.angle),scene=overlapScene(state.depth),size=65;
     if(state.isolate!=='both')scene.splats=scene.splats.filter((_,i)=>i===Number(state.isolate));
-    const image=renderScene(scene,camera,size,size), wrong=renderScene(scene,camera,size,size,[1,1,1],true);
+    const bg=state.background==='white'?[1,1,1]:[0,0,0];
+    const image=renderScene(scene,camera,size,size,bg), wrong=renderScene(scene,camera,size,size,bg,true);
     paint(ui.images[0],image,size);paint(ui.images[1],wrong,size);
     const spots=projectSplats(scene,camera,size,size),u=Math.round(state.pixel),offset=3*(32*size+u);
     for(const canvas of ui.images){
@@ -69,10 +70,14 @@ export function mountVisibility(host,lang='ru',saved={}){
       context.strokeRect(u-1.5,30.5,4,4);
     }
     const alpha=spots.map(p=>footprintAlpha([u,32],p));
+    let remaining=1;
+    const shares=alpha.map(a=>{const share=remaining*a;remaining*=1-a;return share;});
     const order=spots.map(p=>p.color[0]===1?t('красное','red'):t('синее','blue')).join(' → ');
     readout(ui,[[t('Пиксель (u, v)','Pixel (u, v)'),[u,32].join(', ')],[t('Ближнее → дальнее','Near → far'),order],
       [t('Глубины в этом порядке','Depths in this order'),spots.map(s=>show(s.depth)).join(' / ')],
-      ['α',alpha.map(x=>show(x)).join(', ')],['RGB',triple(Array.from(image.slice(offset,offset+3)))],
+      ['α',alpha.map(x=>show(x)).join(', ')],
+      [t('Доли слоёв в этом порядке','Layer shares in this order'),shares.map(x=>show(x)).join(' / ')],
+      [t('Доля фона','Background share'),show(remaining)],['RGB',triple(Array.from(image.slice(offset,offset+3)))],
       [t('RGB при перестановке','RGB after swapping'),triple(Array.from(wrong.slice(offset,offset+3)))]]);
   }
   numberInput(ui.controls,t('Угол камеры, °','Camera angle, °'),-140,140,1,state.angle,v=>{state.angle=v;draw();});
@@ -80,6 +85,8 @@ export function mountVisibility(host,lang='ru',saved={}){
   numberInput(ui.controls,t('Пиксель u при v = 32','Pixel u at v = 32'),0,64,1,state.pixel,v=>{state.pixel=Math.round(v);draw();});
   addSelect(ui.controls,{label:t('Видимые пятна','Visible splats'),options:[{value:'both',label:t('Оба','Both')},
     {value:'0',label:t('Красное','Red')},{value:'1',label:t('Синее','Blue')}],value:state.isolate,onChange:v=>{state.isolate=v;draw();}});
+  addSelect(ui.controls,{label:t('Фон','Background'),options:[{value:'white',label:t('Белый','White')},
+    {value:'black',label:t('Чёрный','Black')}],value:state.background,onChange:v=>{state.background=v;draw();}});
   draw();return instance(ui,state);
 }
 
@@ -141,7 +148,7 @@ export function mountMultiview(host,lang='ru',saved={}){
 }
 
 export function mountDensity(host,lang='ru',saved={}){
-  const t=text(lang),state=stateFrom({scene:densityScene(),selected:0,threshold:.001,steps:0},saved);
+  const t=text(lang),state=stateFrom({scene:densityScene(),selected:0,threshold:.001,steps:0,pixel:16},saved);
   const ui=setup(host,lang,t('Одно широкое или два узких','One wide splat or two narrow ones'),
     t('Обычный шаг двигает существующие пятна. Структурное действие сразу меняет состав или непрозрачность сцены.','A gradient step moves existing splats. A structural edit immediately changes the list or its opacities.'),
     [t('Цель','Target'),t('Сцена','Scene')]);
@@ -153,6 +160,9 @@ export function mountDensity(host,lang='ru',saved={}){
   for(const [op,ru,en] of [['clone','Клон','Clone'],['split','Разделение','Split'],['prune','Удаление слабых','Prune weak splats'],['reset','Сброс непрозрачности','Opacity reset']])
     buttons.push(addButton(ui.controls,t(ru,en),()=>change(s=>densityEdit(s,op,state.selected))));
   numberInput(ui.controls,t('Порог градиента','Gradient threshold'),0,.025,.0001,state.threshold,v=>{state.threshold=v;draw();});
+  const setPixel=numberInput(ui.controls,t('Столбец u (строка 16)','Column u (row 16)'),0,32,1,state.pixel,v=>{
+    state.pixel=Math.round(v);setPixel(state.pixel);draw();
+  });
   addButton(ui.controls,t('Проверка плотности','Adaptive pass'),()=>change(s=>densityPass(s,state.threshold)));
   addButton(ui.controls,t('Шаг градиента','Gradient step'),()=>change(s=>densityStep(s)));
   addButton(ui.controls,t('Исходная сцена','Starting scene'),()=>{state.scene=densityScene();state.steps=0;state.selected=0;previous=densityLoss(state.scene);draw();});
@@ -160,7 +170,15 @@ export function mountDensity(host,lang='ru',saved={}){
     const n=state.scene.splats.length,cam=translatedCamera(0,42);state.selected=Math.max(0,Math.min(state.selected,n-1));
     select.replaceChildren(...state.scene.splats.map((_,i)=>new Option(String(i),String(i))));select.value=String(state.selected);
     buttons[0].disabled=buttons[1].disabled=n===0||n>=16;
-    paint(ui.images[0],renderScene(densityScene(true),cam,33,33),33);paint(ui.images[1],renderScene(state.scene,cam,33,33),33);
+    const frames=[renderScene(densityScene(true),cam,33,33),renderScene(state.scene,cam,33,33)];
+    frames.forEach((frame,index)=>{
+      const canvas=ui.images[index];
+      paint(canvas,frame,33);
+      const context=canvas.getContext('2d');
+      context.strokeStyle='#172a40';context.lineWidth=.25;
+      context.strokeRect(state.pixel-.75,15.25,2.5,2.5);
+    });
+    const [targetRed,modelRed]=frames.map(frame=>frame[3*(16*33+state.pixel)]);
     const s=state.scene.splats[state.selected];
     if(state.scene!==measuredScene){gradients=densityGradients(state.scene);measuredScene=state.scene;}
     const gx=s?gradients[state.selected][0]:0;
@@ -170,6 +188,7 @@ export function mountDensity(host,lang='ru',saved={}){
       decision=s.scales[0]>.32?t('Разделить','Split'):t('Клонировать','Clone');
     readout(ui,[[t('Пятен','Splats'),n],[t('Числа сцены / байты float32','Scene scalars / float32 bytes'),(14*n)+' / '+(56*n)],
       [t('MSE до → после','MSE before → after'),show(previous,7)+' → '+show(densityLoss(state.scene),7)],
+      [t('Строка 16 · R образца / модели / разность','Row 16 · target R / model R / difference'),triple([targetRed,modelRed,modelRed-targetRed])],
       [t('Выбранное пятно · x, σₓ, o','Selected splat · x, σₓ, o'),s?triple([s.center[0],s.scales[0],s.opacity]):'—'],
       [t('Градиент по x / кандидат до учёта лимита','X gradient / candidate before the count limit'),s?show(gx,7)+' / '+decision:'—']]);
   }

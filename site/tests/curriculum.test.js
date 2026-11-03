@@ -28,10 +28,10 @@ test('every bilingual notebook opens its registered browser experiment', () => {
     return JSON.parse(readFileSync(url, 'utf8'));
   });
   const names = content.map(lessons => lessons.map(lesson => {
-    const [lab] = lesson.cells.filter(cell => cell.type === 'lab');
-    assert.equal(typeof experiments[lab.name]?.[0], 'function', lab.name);
-    return lab.name;
+    const labs = lesson.cells.filter(cell => cell.type === 'lab');
+    for (const lab of labs) assert.equal(typeof experiments[lab.name]?.[0], 'function', lab.name);
+    return labs.map(lab => lab.name);
   }));
   assert.deepEqual(names[0], names[1]);
-  assert.equal(new Set(names[0]).size, lessonNumbers.length);
+  assert.equal(new Set(names[0].flat()).size, Object.keys(experiments).length);
 });

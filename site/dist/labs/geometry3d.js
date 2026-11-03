@@ -6,7 +6,7 @@ import {
 
 const blue='#385bbd', orange='#bd6137', green='#518269', neutral='#586664';
 const ns='http://www.w3.org/2000/svg', near=.2, principal=[100,60];
-const axes={z:[0,0,1],y:[0,1,0],xyz:[1,1,1]};
+const axes={z:[0,0,1],y:[0,1,0],x:[1,0,0],xyz:[1,1,1]};
 const rotation=(axis,deg)=>quaternionMatrix(axisAngleQuaternion(axis,deg));
 const fmt=x=>Number(x.toFixed(3)).toString();
 const tuple=v=>'('+v.map(fmt).join(', ')+')';
@@ -100,16 +100,19 @@ export function mountFrames(host,lang='ru',saved={}) {
     title:['Один треугольник в двух системах','One triangle in two frames'],
     note:['Вид сверху. Оранжевая точка — подвижная вершина, тёмная точка — камера. Короткие линии показывают её правую и переднюю оси.',
       'Overhead view. Orange marks the movable vertex and the dark dot marks the camera. Short lines show its right and forward axes.'],
-    numbers:[['pointX','Точка x','Point x',-2,2,.1,1],['objectX','Объект x','Object x',-2,2,.1,1],['cameraX','Камера x','Camera x',-2,2,.1,1],['yaw','Поворот камеры °','Camera yaw °',-70,70,1,0]],
+    numbers:[['pointX','Точка x','Point x',-2,2,.1,1],['objectX','Объект x','Object x',-2,2,.1,1],['cameraX','Камера x','Camera x',-2,2,.1,1],['yaw','Поворот камеры °','Camera yaw °',-180,180,1,0]],
   },(view,s,t)=>{
     const local=[[0,0,3],[s.pointX,1,4],[-.6,0,4.5],[0,0,3]], c=[s.cameraX,0,0];
     const world=local.map(([x,y,z])=>[x+s.objectX,y,z]), basis=rotation(axes.y,s.yaw);
     const camera=world.map(p=>worldToCamera(p,c,basis));
     const xz=p=>[p[0],p[2]];
     for(const [name,points,origin,r] of [[t('Мир','World'),world,c,basis],[t('Камера','Camera'),camera,[0,0,0],rotation(axes.y,0)]]){
-      const fig=panel(view,name,'x','z',[-6,6],[-2,7]);
+      const cameraView = points === camera;
+      const fig=panel(view,name,'x','z',cameraView?[-8,8]:[-6,6],cameraView?[-8,8]:[-2,7]);
       fig.path(points.map(xz));fig.mark(xz(points[1]));fig.mark(xz(origin),neutral);
       for(const [i,color] of [[0,orange],[2,green]])fig.path([xz(origin),[origin[0]+r[0][i],origin[2]+r[2][i]]],color,3);
+      const corner=[origin[0]+r[0][0]*camera[1][0],origin[2]+r[2][0]*camera[1][0]];
+      fig.path([xz(origin),corner,xz(points[1])],'#796597',1.3,.8);
     }
     return [['p',tuple(local[1])],['P',tuple(world[1])],['P − C',tuple(world[1].map((x,i)=>x-c[i]))],['P camera',tuple(camera[1])]];
   });
@@ -118,18 +121,21 @@ export function mountFrames(host,lang='ru',saved={}) {
 export function mountPerspective(host,lang='ru',saved={}) {
   return experiment(host,lang,saved,{
     title:['Лучи и пиксели','Rays and pixels'],
-    note:['Синяя перекладина имеет ширину 1 м. Зелёная черта находится в 0.2 м перед камерой. Центры пикселей идут от 0 до 200 по горизонтали и от 0 до 120 по вертикали.',
-      'The blue bar is one meter wide. The green line lies 0.2 m in front of the camera. Pixel centers run from 0 to 200 horizontally and 0 to 120 vertically.'],
+    note:['Обе перекладины метровые. Фиолетовая закреплена на глубине 8 м в мире. Зелёная черта находится в 0.2 м перед камерой.',
+      'Both bars are one meter wide. The purple one is fixed at a world depth of 8 m. The green line lies 0.2 m ahead of the camera.'],
     numbers:[['f','Фокус, px','Focal length, px',20,160,1,80],['depth','Объект z','Object z',1,7,.1,4],['cameraZ','Камера z','Camera z',-2,6,.1,0]],
   },(view,s,t)=>{
-    const z=s.depth-s.cameraZ,side=panel(view,t('Лучи сверху','Rays from above'),'x','z',[-2.2,2.2],[-2.5,8]);
+    const z=s.depth-s.cameraZ,side=panel(view,t('Лучи сверху','Rays from above'),'x','z',[-2.2,2.2],[-2.5,8.7]);
+    side.path([[.5,8],[1.5,8]],'#796597',4);
     side.path([[.5,s.depth],[1.5,s.depth]],blue,4);side.mark([0,s.cameraZ],neutral);
     for(const x of [.5,1,1.5])side.path([[0,s.cameraZ],[x,s.depth]],orange,1.3);
     side.path([[-2.2,s.cameraZ+near],[2.2,s.cameraZ+near]],green,1);
     const screen=panel(view,t('Сенсор','Sensor'),'u [px]','v [px]',[-.5,200.5],[120.5,-.5]);
     screen.mark(principal,neutral,2);
-    const rows=[['z',fmt(z)+' m']];
-    if(z<=near)return [...rows,[t('Изображение','Image'),t('Отсечено ближней плоскостью','Clipped by the near plane')]];
+    const farZ=8-s.cameraZ;
+    screen.path([.5,1.5].map(x=>projectPoint([x,-.5,farZ],s.f,principal,near)),'#796597',4);
+    const rows=[['z',fmt(z)+' m'],[t('Длина дальней перекладины','Far bar width'),fmt(s.f/farZ)+' px']];
+    if(z<=near+1e-10)return [...rows,[t('Синяя перекладина','Blue bar'),t('Отсечена ближней плоскостью','Clipped by the near plane')]];
     const [a,b,mid]=[.5,1.5,1].map(x=>projectPoint([x,.5,z],s.f,principal,near));
     screen.path([a,b],blue,4);screen.mark(mid);
     return [...rows,['(u, v)',tuple(mid)+' px'],['Δu',fmt(b[0]-a[0])+' px']];
@@ -156,7 +162,7 @@ export function mountEllipsoid(host,lang='ru',saved={}) {
     title:['Один вес на всей оболочке','One weight across the shell'],
     note:['Линии соединяют точки веса exp(−1/2). Три цветных отрезка показывают собственные оси. Обе картинки ортографические, дальние отрезки сохраняют размер.',
       'Mesh lines join points of weight exp(−1/2). The three colored segments are the principal axes. Both drawings are orthographic, so distance does not change the scale.'],
-    numbers:[['sx','Масштаб x','Scale x',.2,3,.05,2],['sy','Масштаб y','Scale y',.2,3,.05,.75],['sz','Масштаб z','Scale z',.2,3,.05,1],['angle','Угол °','Angle °',-180,180,1,45]],axis:true,
+    numbers:[['sx','Масштаб x','Scale x',.2,3,.05,2],['sy','Масштаб y','Scale y',.2,3,.05,.75],['sz','Масштаб z','Scale z',.2,3,.05,1],['angle','Угол °','Angle °',-180,180,1,45],['probeX','Метка x, м','Probe x, m',-3,3,.05,1.5]],axis:true,
   },(view,s,t)=>{
     const q=axisAngleQuaternion(axes[s.axis],s.angle),r=quaternionMatrix(q),scales=[s.sx,s.sy,s.sz];
     const oblique=multiply(rotation([1,0,0],-20),rotation(axes.y,30));
@@ -167,8 +173,12 @@ export function mountEllipsoid(host,lang='ru',saved={}) {
       for(const [i,color] of [[0,orange],[1,green],[2,'#7952a4']]){
         fig.path([[0,0],[transform[0][i]*scales[i],transform[1][i]*scales[i]]],color,3);
       }
+      fig.mark(matVec(basis,[s.probeX,0,0]).slice(0,2),'#222222',3);
     }
-    return [['q (w, x, y, z)',tuple(q)],['Σ [m²]',matrix(covariance3d(scales,q))]];
+    const local=matVec(transpose(r),[s.probeX,0,0]);
+    const d2=local.reduce((sum,v,i)=>sum+(v/scales[i])**2,0);
+    return [['q (w, x, y, z)',tuple(q)],['Σ [m²]',matrix(covariance3d(scales,q))],
+      [t('Метка в своих осях','Probe in local axes'),tuple(local)+' m'],['D²',fmt(d2)],['G',fmt(Math.exp(-d2/2))]];
   });
 }
 

@@ -24,6 +24,20 @@ class GeometryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 project_point([1, .5, z], 80, near=.2)
 
+    def test_decimal_camera_position_clips_the_near_bar_but_keeps_far_reference(self):
+        from matplotlib import pyplot as plt
+        from geometry_demos import perspective_figure
+
+        # Decimal slider ticks put the blue bar exactly at the 0.2 m near plane.
+        figure = perspective_figure("en", depth=4, camera_z=3.8)
+        try:
+            sensor = figure.axes[1]
+            bars = [line for line in sensor.lines if len(line.get_xdata()) == 2]
+            self.assertEqual(len(bars), 1)
+            self.assertAlmostEqual(np.ptp(bars[0].get_xdata()), 80 / (8 - 3.8))
+        finally:
+            plt.close(figure)
+
     def test_jacobian_is_local_derivative_of_actual_perspective(self):
         p = np.array([1.1, -.3, 2.7])
         focal = (80., 115.)

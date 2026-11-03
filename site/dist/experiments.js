@@ -1,3 +1,4 @@
+import {mountTrack,mountLedger,mountRegion} from './labs/photo-inspection.js';
 import {mountScene,mountBell} from './labs/foundations.js';
 import {mountPlane,mountCovariance} from './labs/plane.js';
 import {mountEditor} from './labs/editor.js';
@@ -11,6 +12,8 @@ import {mountStorageBudget, mountStaticCodec, mountMotionCodec, mountCodecStudy}
 
 // The disclosure beside each experiment opens the same module that draws it.
 export const experiments = {
+  'photo-track': [mountTrack,'photo-inspection'], 'photo-ledger': [mountLedger,'photo-inspection'],
+  'photo-region': [mountRegion,'photo-inspection'],
   scene: [mountScene, 'foundations'], bell: [mountBell, 'foundations'],
   plane: [mountPlane, 'plane'], covariance: [mountCovariance, 'plane'], editor: [mountEditor, 'editor'],
   loss: [mountLoss, 'learning'], descent: [mountDescent, 'learning'],
