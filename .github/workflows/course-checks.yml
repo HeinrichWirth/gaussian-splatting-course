@@ -14,6 +14,9 @@ permissions:
 jobs:
   notebooks:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        language: [ru, en]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
@@ -25,8 +28,9 @@ jobs:
           python -m pip install -r requirements-training.txt
           python -m ipykernel install --user --name python3
       - name: Run numerical and publishing checks
+        if: matrix.language == 'ru'
         env:
           MPLBACKEND: Agg
         run: python -m unittest discover -s tests -v
-      - name: Execute the learning, 3D, and reconstruction notebooks in both languages
-        run: python scripts/build_lessons.py --lessons 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21
+      - name: Execute all 30 notebooks
+        run: python scripts/build_lessons.py --languages ${{ matrix.language }}

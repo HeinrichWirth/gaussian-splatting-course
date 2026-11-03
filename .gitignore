@@ -7,4 +7,6 @@ __pycache__/
 .virtual_documents/
 site/node_modules/
 static-scene-result/
+dynamic-scene-result/
+codec-study-result/
 

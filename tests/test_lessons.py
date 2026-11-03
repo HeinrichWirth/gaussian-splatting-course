@@ -14,7 +14,7 @@ import nbformat
 import numpy as np
 
 import course_demos as demos
-from scripts.build_lessons import github_markdown
+from scripts.build_lessons import PUBLISHED_LESSONS, github_markdown
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -140,6 +140,12 @@ class MaterialTests(unittest.TestCase):
         code = "```tex\n\\phantom{9}\n```"
         self.assertEqual(github_markdown(code), code)
 
+    def test_github_inline_math_after_hyphenated_word(self):
+        with self.assertRaisesRegex(ValueError, "word boundary"):
+            github_markdown("The world-$x$ derivative.")
+        for text in ("Along the world axis $x$.", "Example: `world-$x$`"):
+            self.assertEqual(github_markdown(text), text)
+
     def test_github_math_rejects_unsupported_operatorname(self):
         for source in (r"The diagonal: $\operatorname{diag}(4,1)$.",
                        "$$\n\\operatorname{diag}(4,1)\n$$"):
@@ -152,7 +158,7 @@ class MaterialTests(unittest.TestCase):
 
     def test_every_display_formula_is_exported_as_fenced_math(self):
         for language in ("ru", "en"):
-            for lesson in range(1, 22):
+            for lesson in PUBLISHED_LESSONS:
                 nb = nbformat.read(ROOT/"notebooks"/language/f"lesson-{lesson:02}.ipynb", as_version=4)
                 formulas = []
                 for cell in nb.cells:
@@ -165,7 +171,7 @@ class MaterialTests(unittest.TestCase):
                 self.assertNotRegex(exported, r"(?m)^\$\$$")
 
     def test_notebooks_executed_and_translations_structurally_match(self):
-        for lesson in range(1, 22):
+        for lesson in PUBLISHED_LESSONS:
             notebooks = []
             for language in ("ru", "en"):
                 path = ROOT / "notebooks" / language / f"lesson-{lesson:02}.ipynb"
@@ -193,7 +199,7 @@ class MaterialTests(unittest.TestCase):
                 self.assertTrue((path.parent/target).exists(), f"{path}: {destination}")
             self.assertNotIn("application/vnd.jupyter.widget-view", text)
         for language in ("ru", "en"):
-            for lesson in range(1, 22):
+            for lesson in PUBLISHED_LESSONS:
                 self.assertGreaterEqual(len(list((ROOT/"assets"/f"lesson{lesson}"/language).glob("figure-*.png"))), 2)
 
 

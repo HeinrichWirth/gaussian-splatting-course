@@ -16,7 +16,7 @@ import nbformat
 from nbclient import NotebookClient
 
 ROOT = Path(__file__).resolve().parents[1]
-PUBLISHED_LESSONS = range(1, 22)
+PUBLISHED_LESSONS = range(1, 31)
 
 
 def github_markdown(text: str) -> str:
@@ -51,6 +51,10 @@ def github_markdown(text: str) -> str:
             raise ValueError("GitHub does not allow the phantom macro; use a visible symbol instead")
         if not fence and re.search(r"(?<!\\)\\operatorname\b", line):
             raise ValueError("GitHub does not allow the operatorname macro; use mathrm instead")
+        if not fence and math_lines is None:
+            prose = re.sub(r"(`+).*?\1", "", line)
+            if re.search(r"\w-\$(?!\$)[^$\n]+\$", prose):
+                raise ValueError("GitHub needs a word boundary before inline math; rephrase the hyphenated term")
         if math_lines is not None:
             if stripped.endswith("$$"):
                 remainder = stripped[:-2]

@@ -1,0 +1,64 @@
+{
+  "settings": {
+    "format": "gs-course-codec-study-v1",
+    "width": 80,
+    "height": 60,
+    "repeats": 3,
+    "maxBytes": 2200,
+    "minPsnr": 16,
+    "priority": "quality"
+  },
+  "candidates": [
+    {
+      "name": "f32-rgb",
+      "bytes": 6560,
+      "splats": 117,
+      "validationPsnr": 20.244077182988566,
+      "decodeMs": 0.05790003342553973,
+      "renderMs": 48.166199994739145,
+      "bufferBytes": 115200
+    },
+    {
+      "name": "u8-rgb",
+      "bytes": 1694,
+      "splats": 117,
+      "validationPsnr": 20.271231478065772,
+      "decodeMs": 0.08869997691363096,
+      "renderMs": 47.49440000159666,
+      "bufferBytes": 115200
+    },
+    {
+      "name": "u8-half",
+      "bytes": 882,
+      "splats": 59,
+      "validationPsnr": 19.271905644826976,
+      "decodeMs": 0.07020001066848636,
+      "renderMs": 27.041500026825815,
+      "bufferBytes": 115200
+    },
+    {
+      "name": "u8-gray-half",
+      "bytes": 764,
+      "splats": 59,
+      "validationPsnr": 19.191348336296485,
+      "decodeMs": 0.06580003537237644,
+      "renderMs": 23.576200008392334,
+      "bufferBytes": 115200
+    }
+  ],
+  "selected": "u8-rgb",
+  "validationView": "view-00.jpg",
+  "test": {
+    "view": "view-04.jpg",
+    "mse": 0.00983929764663813,
+    "psnr": 20.07035901474754
+  },
+  "runtime": {
+    "renderer": "NumPy CPU",
+    "os": "Windows",
+    "architecture": "AMD64",
+    "processor": "Intel64 Family 6 Model 197 Stepping 2, GenuineIntel",
+    "python": "3.14.6",
+    "numpy": "2.5.4"
+  }
+}

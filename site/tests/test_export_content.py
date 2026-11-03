@@ -45,8 +45,8 @@ class ExportLinkTests(unittest.TestCase):
                 text = "\n".join(cell["source"] for lesson in lessons
                                  for cell in lesson["cells"] if cell["type"] == "text")
                 self.assertIn(f"](#/{language}/6)", text)
-                self.assertEqual([lesson["number"] for lesson in lessons], list(range(1, 22)))
-                self.assertEqual([lesson["block"] for lesson in lessons], [1]*5+[2]*4+[3]*6+[4]*6)
+                self.assertEqual([lesson["number"] for lesson in lessons], list(range(1, 31)))
+                self.assertEqual([lesson["block"] for lesson in lessons], [1]*5+[2]*4+[3]*6+[4]*6+[5]*5+[6]*4)
                 self.assertNotRegex(text, r"\]\(\.\./\.\./README(?:_ru)?\.md(?:#|\))")
 
     def test_exporter_uses_notebooks_inside_this_repository(self):

@@ -1,0 +1,9 @@
+{
+  "format": "gs-course-codec-study-v1",
+  "width": 80,
+  "height": 60,
+  "repeats": 3,
+  "maxBytes": 2200,
+  "minPsnr": 16,
+  "priority": "quality"
+}

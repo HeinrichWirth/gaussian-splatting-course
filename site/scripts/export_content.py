@@ -122,7 +122,7 @@ The plot below fits the center using the whole curve. Blue is the target with ce
 def main():
     for lang in ['ru','en']:
         lessons=[]
-        for number in range(1,22):
+        for number in range(1,31):
             path=COURSE/'notebooks'/lang/f'lesson-{number:02}.ipynb'
             notebook=json.loads(path.read_text(encoding='utf8'))
             tagged = any(any(tag.startswith('web-lab:') for tag in cell.get('metadata', {}).get('tags', []))
@@ -165,7 +165,7 @@ def main():
                         value=''.join(output['data']['text/plain'])
                         if not value.startswith(('<','VBox','HBox')): outputs.append(value)
                 cells.append({'type':'code','source':src,'output':'\n'.join(outputs),'cell':i})
-            block = next(i for i, last in enumerate((5, 9, 15, 21), start=1) if number <= last)
+            block = next(i for i, last in enumerate((5, 9, 15, 21, 26, 30), start=1) if number <= last)
             lessons.append({'number':number,'block':block,'title':title,'cells':cells,'source':f'https://github.com/HeinrichWirth/gaussian-splatting-course/blob/main/notebooks/{lang}/lesson-{number:02}.ipynb'})
         (OUT/'content').mkdir(exist_ok=True)
         (OUT/'content'/f'{lang}.json').write_text(json.dumps(lessons,ensure_ascii=False),encoding='utf8')

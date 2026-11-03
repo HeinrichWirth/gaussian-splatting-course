@@ -2,7 +2,7 @@
 
 **[Open the interactive course](https://heinrichwirth.github.io/gaussian-splatting-course/#/en)** · [Русский](https://heinrichwirth.github.io/gaussian-splatting-course/#/ru)
 
-The first four blocks are live, with 21 lessons. A single patch of color grows into a scene seen from a moving camera, then into a reconstruction from photographs. Each experiment has expandable code.
+All six blocks are live. The 30 lessons start with a single patch of color and build up to a moving 3D scene. The final experiments compare what survives compression and how many bytes it costs. Each experiment has expandable code.
 
 [Website source and local setup](site/README.md)
 
@@ -97,12 +97,27 @@ Every lesson includes an interactive experiment or runnable example with adjusta
 | 19 | [Preparing Data: Capture, Cameras, and COLMAP](lessons/en/lesson-19-en.md) | [Experiment and calculations](notebooks/en/lesson-19.ipynb) |
 | 20 | [A First Captured Scene](lessons/en/lesson-20-en.md) | [Experiment and calculations](notebooks/en/lesson-20.ipynb) |
 | 21 | [Evaluating Quality and Diagnosing Artifacts](lessons/en/lesson-21-en.md) | [Experiment and calculations](notebooks/en/lesson-21.ipynb) |
+| 22 | [What Changes When a Scene Moves](lessons/en/lesson-22-en.md) | [Experiment and calculations](notebooks/en/lesson-22.ipynb) |
+| 23 | [One Gaussian over Time](lessons/en/lesson-23-en.md) | [Experiment and calculations](notebooks/en/lesson-23.ipynb) |
+| 24 | [Persistent Gaussians: Dynamic 3D Gaussians](lessons/en/lesson-24-en.md) | [Experiment and calculations](notebooks/en/lesson-24.ipynb) |
+| 25 | [A Canonical Scene and Its Deformation: 4D-GS](lessons/en/lesson-25-en.md) | [Experiment and calculations](notebooks/en/lesson-25.ipynb) |
+| 26 | [Building a Simple Dynamic Model](lessons/en/lesson-26-en.md) | [Experiment and calculations](notebooks/en/lesson-26.ipynb) |
+| 27 | [Where File Size and Memory Use Come From](lessons/en/lesson-27-en.md) | [Experiment and calculations](notebooks/en/lesson-27.ipynb) |
+| 28 | [Compressing a Static Scene](lessons/en/lesson-28-en.md) | [Experiment and calculations](notebooks/en/lesson-28.ipynb) |
+| 29 | [Compressing Dynamics](lessons/en/lesson-29-en.md) | [Experiment and calculations](notebooks/en/lesson-29.ipynb) |
+| 30 | [Final Experiment: Choosing a Method for a Task](lessons/en/lesson-30-en.md) | [Experiment and calculations](notebooks/en/lesson-30.ipynb) |
 
 The notebooks contain the full lessons, code, figures, and interactive exercises. The reading versions preserve the text, code, and static results. GitHub shows the saved results; the interactive experiments run in Jupyter.
 
 The first block takes us from one bell curve to a small image. The lesson 5 editor supports adding and removing spots, moving them, changing their sizes, rotation, color, and opacity, and reordering the layers. Scenes can be saved as JSON and loaded again: block 2 adjusts these parameters automatically. A trained scene from lesson 9 uses the same file format and opens in the lesson 5 editor.
 
 Lessons 19–21 include [nine calibrated photographs of a sculpture](data/photographic-example/README.md). Eight views provide the training images. The ninth shows how the scene looks from a held-out camera. The lessons also cover preparing personal photographs in COLMAP and running the full CUDA implementation separately.
+
+In the [motion block](https://heinrichwirth.github.io/gaussian-splatting-course/#/en/22), time and camera have separate controls. The [final experiment](https://heinrichwirth.github.io/gaussian-splatting-course/#/en/30) saves comparison settings to a file. The [saved CPU run](data/codec-study/reference.json) records the size and timing of each version. Timing depends on the machine. This command replays the comparison.
+
+```sh
+python scripts/benchmark_codecs.py --settings data/codec-study/settings.json --output codec-study-result/report.json
+```
 
 ### Running the Experiments
 
@@ -128,7 +143,7 @@ On macOS or Linux, the equivalent commands are:
 .venv/bin/python -m jupyterlab
 ```
 
-Lesson 8 introduces PyTorch. All four blocks run on a CPU with the additional training dependencies. The Windows PowerShell command before starting Jupyter is:
+Lesson 8 introduces PyTorch. All six blocks run on a CPU with the additional training dependencies. The Windows PowerShell command before starting Jupyter is:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-training.txt
@@ -144,7 +159,7 @@ The first lesson is at `notebooks/en/lesson-01.ipynb`. In the open notebook, **K
 
 Text such as `VBox(...)` instead of sliders usually means widget support has not loaded. In that case, we check the `ipywidgets` installation in the kernel environment and restart Jupyter. **Shift+Enter** runs one cell and moves to the next.
 
-Lesson text is edited in the notebooks. Running `python scripts/build_lessons.py` executes all 42 notebooks in the first four blocks and updates the Markdown versions and figures. The `--lessons 6 7 8 9` option limits the build to those lessons. The `--languages ru` and `--languages en` options select one language.
+Lesson text is edited in the notebooks. Running `python scripts/build_lessons.py` executes all 60 course notebooks and updates the Markdown versions and figures. The `--lessons 6 7 8 9` option limits the build to those lessons. The `--languages ru` and `--languages en` options select one language.
 
 ---
 

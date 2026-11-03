@@ -60,6 +60,7 @@ const fmt=(v,p=5)=>Number(v.toFixed(p)).toString();
 function done(ui,state,shutdown=()=>{}) {
   return {getState:()=>state,destroy:()=>{shutdown();ui.root.remove();}};
 }
+export {lab, number, panel, pixels, stats, done};
 export function mountTiles(host,lang='ru',saved={}) {
   const ui=lab(host,lang,'Сколько пятен видит тайл','How many splats reach a tile',
     'Цвет слева получается из отсортированных пятен. Чем длиннее список тайла, тем насыщеннее синий справа.',
